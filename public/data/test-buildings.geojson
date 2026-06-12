@@ -1,0 +1,107 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            103.8510,
+                            1.2902
+                        ],
+                        [
+                            103.8525,
+                            1.2902
+                        ],
+                        [
+                            103.8525,
+                            1.2915
+                        ],
+                        [
+                            103.8510,
+                            1.2915
+                        ],
+                        [
+                            103.8510,
+                            1.2902
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Raffles City",
+                "height": 80
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            103.8530,
+                            1.2930
+                        ],
+                        [
+                            103.8550,
+                            1.2930
+                        ],
+                        [
+                            103.8550,
+                            1.2950
+                        ],
+                        [
+                            103.8530,
+                            1.2950
+                        ],
+                        [
+                            103.8530,
+                            1.2930
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Suntec City",
+                "height": 65
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            103.8585,
+                            1.2835
+                        ],
+                        [
+                            103.8595,
+                            1.2835
+                        ],
+                        [
+                            103.8595,
+                            1.2845
+                        ],
+                        [
+                            103.8585,
+                            1.2845
+                        ],
+                        [
+                            103.8585,
+                            1.2835
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Marina Bay Sands",
+                "height": 200
+            }
+        }
+    ]
+}
