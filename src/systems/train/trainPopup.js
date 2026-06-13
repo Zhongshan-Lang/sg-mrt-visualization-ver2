@@ -1,22 +1,29 @@
 import { stationCodeToData } from '../../data/generated/stationIndex'
 
 const TRAIN_POPUP_LABELS = {
-    to: 'To · 开往 · செல்லும்',
-    next: 'Next · 下一站 · அடுத்து'
+    to: { en: 'To', zh: '开往', ta: 'நோக்கி' },
+    next: { en: 'Next', zh: '下一站', ta: 'அடுத்து' }
 }
 
 function popupTheme() {
     const dark = localStorage.getItem('mrt-theme') !== 'light'
     return {
-        bg: dark ? 'rgba(18,18,18,0.94)' : 'rgba(255,255,255,0.94)',
-        text: dark ? '#eee' : '#1a1a1a',
+        bg: dark ? 'rgba(16,16,16,0.94)' : 'rgba(255,255,255,0.94)',
+        text: dark ? '#f3f3f3' : '#171717',
+        textMuted: dark ? 'rgba(255,255,255,0.58)' : 'rgba(0,0,0,0.48)',
         border: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
         rowBg: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+        shadow: dark ? '0 10px 32px rgba(0,0,0,0.3)' : '0 10px 28px rgba(0,0,0,0.12)'
     }
 }
 
 function stationName(code, lang) {
     return stationCodeToData[code]?.[lang] || code || ''
+}
+
+function labelTriplet(key) {
+    const label = TRAIN_POPUP_LABELS[key]
+    return `${label.en} · ${label.zh} · ${label.ta}`
 }
 
 function getAllCodesForStation(code, geojson) {
@@ -46,23 +53,29 @@ function badgeColor(code, routeColors) {
 function buildBadgesHTML(codes, routeColors) {
     return codes.map(code => {
         const color = badgeColor(code, routeColors)
-        return `<span style="background:${color};padding:1px 7px;border-radius:999px;font-size:10px;font-weight:bold;color:#fff;margin-right:3px">${code}</span>`
+        return `<span style="background:${color};padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;color:#fff">${code}</span>`
     }).join('')
+}
+
+function buildStationNameBlock(code) {
+    const en = stationName(code, 'en')
+    const zh = stationName(code, 'zh')
+    const ta = stationName(code, 'ta')
+
+    return `
+        <div style="font-weight:700;font-size:13px;line-height:1.2">${en}</div>
+        <div style="margin-top:3px;font-size:11px;line-height:1.2;opacity:0.68">${zh}</div>
+        <div style="margin-top:2px;font-size:10px;line-height:1.25;opacity:0.5">${ta}</div>
+    `
 }
 
 export function buildTrainPopupHTML(trainData, { geojson, routeColors, lineColor }) {
     const { nextCode, termCode, trainNum, shortName } = trainData
     const theme = popupTheme()
-    const nextEn = stationName(nextCode, 'en')
-    const nextZh = stationName(nextCode, 'zh')
-    const nextTa = stationName(nextCode, 'ta')
-    const termEn = stationName(termCode, 'en')
-    const termZh = stationName(termCode, 'zh')
-    const termTa = stationName(termCode, 'ta')
     const allNextCodes = getAllCodesForStation(nextCode, geojson)
 
     return `
-    <div style="font-family:sans-serif;font-size:12px;min-width:220px;background:${theme.bg};backdrop-filter:blur(20px);border-radius:16px;color:${theme.text};border:1px solid ${theme.border};box-shadow:0 8px 32px rgba(0,0,0,0.18);overflow:hidden">
+    <div style="font-family:sans-serif;font-size:12px;min-width:236px;background:${theme.bg};backdrop-filter:blur(20px);border-radius:18px;color:${theme.text};border:1px solid ${theme.border};box-shadow:${theme.shadow};overflow:hidden">
         <div style="height:4px;background:${lineColor}"></div>
         <div style="padding:12px 14px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -70,16 +83,14 @@ export function buildTrainPopupHTML(trainData, { geojson, routeColors, lineColor
                 <span style="font-weight:700;font-size:13px">${trainNum}</span>
                 <span style="margin-left:auto;font-size:10px;opacity:0.5">${shortName}</span>
             </div>
-            <div style="background:${theme.rowBg};border-radius:8px;padding:8px 10px;margin-bottom:6px">
-                <div style="font-size:10px;opacity:0.5;margin-bottom:2px">${TRAIN_POPUP_LABELS.to}</div>
-                <div style="font-weight:600;font-size:13px">${termEn}</div>
-                <div style="font-size:11px;opacity:0.6">${termZh} · ${termTa}</div>
+            <div style="background:${theme.rowBg};border-radius:10px;padding:9px 10px;margin-bottom:7px">
+                <div style="font-size:10px;line-height:1.25;opacity:0.56;margin-bottom:5px">${labelTriplet('to')}</div>
+                ${buildStationNameBlock(termCode)}
             </div>
-            <div style="background:${theme.rowBg};border-radius:8px;padding:8px 10px">
-                <div style="font-size:10px;opacity:0.5;margin-bottom:2px">${TRAIN_POPUP_LABELS.next}</div>
-                <div style="font-weight:600;font-size:13px">${nextEn}</div>
-                <div style="font-size:11px;opacity:0.6">${nextZh} · ${nextTa}</div>
-                <div style="margin-top:4px">${buildBadgesHTML(allNextCodes, routeColors)}</div>
+            <div style="background:${theme.rowBg};border-radius:10px;padding:9px 10px">
+                <div style="font-size:10px;line-height:1.25;opacity:0.56;margin-bottom:5px">${labelTriplet('next')}</div>
+                ${buildStationNameBlock(nextCode)}
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${buildBadgesHTML(allNextCodes, routeColors)}</div>
             </div>
         </div>
     </div>`

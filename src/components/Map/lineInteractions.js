@@ -1,5 +1,8 @@
 import { startLineTourCamera } from '../../camera/lineTourCamera'
-import { STATION_INTERACTION_LAYERS } from './stationInteractions'
+import { setMapCursor } from './mapCursor'
+import { hasStationFeatureAtPoint } from './mapInteractionPriority'
+import { clearActiveEntranceMarker, clearInteractionPopups } from './mapInteractionState'
+import { buildLinePopupHTML } from './linePopupMarkup'
 
 export function registerLineInteractions({
     map,
@@ -16,7 +19,7 @@ export function registerLineInteractions({
     } = callbacks
 
     map.on('mouseenter', 'mrt-line-layer', () => {
-        map.getCanvas().style.cursor = 'pointer'
+        setMapCursor(map, 'pointer')
     })
 
     map.on('mousemove', 'mrt-line-layer', (e) => {
@@ -27,23 +30,16 @@ export function registerLineInteractions({
     })
 
     map.on('mouseleave', 'mrt-line-layer', () => {
-        map.getCanvas().style.cursor = ''
+        setMapCursor(map)
         if (popupActiveRef.current) return
         linePopup.remove()
     })
 
     map.on('click', 'mrt-line-layer', (e) => {
-        if (activeEntranceMarkerRef.current) {
-            activeEntranceMarkerRef.current.remove()
-            activeEntranceMarkerRef.current = null
-        }
+        clearActiveEntranceMarker(activeEntranceMarkerRef)
+        clearInteractionPopups({ popup, linePopup, popupActiveRef })
 
-        popup.remove()
-        linePopup.remove()
-        popupActiveRef.current = false
-
-        const stationFeatures = map.queryRenderedFeatures(e.point, { layers: STATION_INTERACTION_LAYERS })
-        if (stationFeatures.length) return
+        if (hasStationFeatureAtPoint(map, e.point)) return
 
         setSelectedStation(null)
 
@@ -57,16 +53,4 @@ export function registerLineInteractions({
         setSelectedLines([props.code])
         setTimeout(() => setIsEntering(false), 150)
     })
-}
-
-function buildLinePopupHTML(props, t) {
-    return `
-        <div style="padding:16px 20px;background:${t.popupBg};backdrop-filter:blur(22px);border-radius:18px;color:${t.textPrimary};font-family:sans-serif;min-width:220px;border:1px solid ${t.borderMedium};box-shadow:${t.shadowPopupLine};">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:16px;height:16px;border-radius:999px;background:${props.color};"></div>
-            <div style="font-size:18px;font-weight:700;">${props.code}</div>
-          </div>
-          <div style="margin-top:8px;font-size:15px;opacity:0.82;">${props.name}</div>
-        </div>
-      `
 }

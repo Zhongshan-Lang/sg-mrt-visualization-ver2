@@ -32,11 +32,13 @@ export default function DesktopChromeToggle({ visible, onToggle }) {
             }}
             onMouseEnter={(event) => {
                 event.currentTarget.style.transform = 'scale(1.05)'
-                event.currentTarget.style.background = t.toolbarBgHover
+                event.currentTarget.style.background = t.sideChromeHoverBg
+                event.currentTarget.style.borderColor = t.sideChromeHoverBorder
             }}
             onMouseLeave={(event) => {
                 event.currentTarget.style.transform = 'scale(1)'
                 event.currentTarget.style.background = visible ? t.overlayStrong : t.toolbarBg
+                event.currentTarget.style.borderColor = visible ? t.highlightAccent : t.borderToolbar
             }}
         >
             UI

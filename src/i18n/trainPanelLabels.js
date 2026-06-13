@@ -1,9 +1,9 @@
 export const trainPanelLabels = {
     train: { en: 'Train', zh: '列车', ta: 'ரயில்' },
-    to: { en: 'To', zh: '开往', ta: 'செல்லும்' },
+    to: { en: 'To', zh: '开往', ta: 'நோக்கி' },
     next: { en: 'Next', zh: '下一站', ta: 'அடுத்து' },
-    current: { en: 'Current', zh: '当前站', ta: 'இங்கு' },
-    route: { en: 'Route', zh: '线路', ta: 'வழித்தடம்' },
+    current: { en: 'Current', zh: '当前站', ta: 'தற்போது' },
+    route: { en: 'Route', zh: '线路', ta: 'பாதை' }
 }
 
 export const trainTrackingViewLabels = [

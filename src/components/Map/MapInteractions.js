@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { useTheme } from '../../contexts/ThemeContext'
-import { registerStationInteractions, STATION_INTERACTION_LAYERS } from './stationInteractions'
+import { registerStationInteractions } from './stationInteractions'
 import { registerLineInteractions } from './lineInteractions'
+import { clearMapClickBinding, clearMapInteractionBindings } from './mapInteractionCleanup'
+import { shouldClosePanelsForMapClick } from './mapInteractionPriority'
+import { clearInteractionPopups, createInteractionState } from './mapInteractionState'
 
 export function useMapInteractions(mapRef, callbacks) {
     const { t } = useTheme()
@@ -36,17 +39,10 @@ export function useMapInteractions(mapRef, callbacks) {
         const map = mapRef.current
         if (!map) return
 
-        ;['mouseenter', 'mouseleave', 'click', 'mousemove'].forEach(event => {
-            STATION_INTERACTION_LAYERS.forEach(layerId => map.off(event, layerId))
-            map.off(event, 'mrt-line-layer')
-        })
+        clearMapInteractionBindings(map)
+        clearMapClickBinding(map, mapClickHandlerRef)
 
-        if (mapClickHandlerRef.current) {
-            map.off('click', mapClickHandlerRef.current)
-        }
-
-        const popupActiveRef = { current: false }
-        const activeEntranceMarkerRef = { current: null }
+        const { popupActiveRef, activeEntranceMarkerRef } = createInteractionState()
 
         registerStationInteractions({
             map,
@@ -69,13 +65,8 @@ export function useMapInteractions(mapRef, callbacks) {
         })
 
         const handleMapClick = (e) => {
-            const stationFeatures = map.queryRenderedFeatures(e.point, { layers: STATION_INTERACTION_LAYERS })
-            const lineFeatures = map.queryRenderedFeatures(e.point, { layers: ['mrt-line-layer'] })
-
-            if (!stationFeatures.length && !lineFeatures.length) {
-                popup.remove()
-                linePopup.remove()
-                popupActiveRef.current = false
+            if (shouldClosePanelsForMapClick(map, e.point)) {
+                clearInteractionPopups({ popup, linePopup, popupActiveRef })
                 callbacks.closePanel()
                 callbacks.closeLinePanel()
             }

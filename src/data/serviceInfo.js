@@ -2,7 +2,7 @@ export const stationFacilityLabels = {
     title: {
         en: 'Facilities',
         zh: '设施',
-        ta: 'நிலைய வசதிகள்'
+        ta: 'வசதிகள்'
     },
     accessibility: {
         en: 'Barrier-free access',
@@ -12,12 +12,12 @@ export const stationFacilityLabels = {
     lifts: {
         en: 'Lift access',
         zh: '电梯通行',
-        ta: 'மின் தூக்கி அணுகல்'
+        ta: 'லிப்ட் அணுகல்'
     },
     tactile: {
         en: 'Tactile guidance',
-        zh: '盲道引导',
-        ta: 'தொட்டு உணரும் வழிகாட்டி'
+        zh: '触觉引导',
+        ta: 'தொட்டு வழிகாட்டி'
     },
     wideGate: {
         en: 'Wide fare gate',
@@ -42,7 +42,7 @@ export const stationFacilityLabels = {
     operatingHours: {
         en: 'Operating hours',
         zh: '运营时间',
-        ta: 'செயல்பாட்டு நேரம்'
+        ta: 'சேவை நேரங்கள்'
     },
     available: {
         en: 'Available',
@@ -51,13 +51,13 @@ export const stationFacilityLabels = {
     },
     pending: {
         en: 'Station-specific data pending',
-        zh: '站点详细数据待补充',
-        ta: 'நிலைய வாரியான தரவு நிலுவையில் உள்ளது'
+        zh: '车站详细信息待补充',
+        ta: 'நிலையத் தகவல் பின்னர் சேர்க்கப்படும்'
     },
     generalHours: {
         en: 'Most MRT/LRT services run from early morning to around midnight. Check official timings for this station.',
-        zh: '大多数 MRT/LRT 服务从清晨运营至午夜前后，本站精确时刻请以官方信息为准。',
-        ta: 'பெரும்பாலான MRT/LRT சேவைகள் அதிகாலை முதல் நள்ளிரவு வரை இயங்கும். இந்த நிலையத்திற்கான சரியான நேரத்தை அதிகாரப்பூர்வ அட்டவணையில் சரிபார்க்கவும்.'
+        zh: '大多数 MRT/LRT 服务从清晨运营至午夜前后，本车站的准确时间请以官方信息为准。',
+        ta: 'பெரும்பாலான MRT/LRT சேவைகள் அதிகாலை முதல் நள்ளிரவு வரை இயங்கும். இந்த நிலையத்தின் துல்லியமான நேரத்தை அதிகாரப்பூர்வ தகவலில் பார்க்கவும்.'
     }
 }
 
@@ -65,7 +65,7 @@ export const routeFareLabels = {
     fare: {
         en: 'Estimated fare',
         zh: '票价估算',
-        ta: 'மதிப்பிடப்பட்ட கட்டணம்'
+        ta: 'கணிக்கப்பட்ட கட்டணம்'
     },
     adultCard: {
         en: 'Adult card',
@@ -75,12 +75,12 @@ export const routeFareLabels = {
     distance: {
         en: 'Estimated distance',
         zh: '预计距离',
-        ta: 'மதிப்பிடப்பட்ட தூரம்'
+        ta: 'கணிக்கப்பட்ட தூரம்'
     },
     note: {
         en: 'Distance-based estimate. Use official fare tools for exact fares.',
         zh: '基于距离的估算，精确票价请以官方票价工具为准。',
-        ta: 'தூர அடிப்படையிலான மதிப்பீடு. துல்லிய கட்டணத்திற்கு அதிகாரப்பூர்வ கருவியைப் பயன்படுத்தவும்.'
+        ta: 'இது தூர அடிப்படையிலான கணிப்பு. துல்லியமான கட்டணத்திற்கு அதிகாரப்பூர்வ கருவிகளை பயன்படுத்தவும்.'
     }
 }
 

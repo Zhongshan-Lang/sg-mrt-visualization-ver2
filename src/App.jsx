@@ -10,6 +10,7 @@ import { useSimulation } from './hooks/useSimulation'
 import { usePanelState } from './hooks/usePanelState'
 import { useRouteNavigation } from './hooks/useRouteNavigation'
 import { useMapLifecycle } from './hooks/useMapLifecycle'
+import { useRailData } from './hooks/useRailData'
 
 import TopBar from './components/Search/TopBar'
 import DesktopChromeToggle from './components/UI/DesktopChromeToggle'
@@ -33,31 +34,9 @@ function App() {
   const activeEntranceMarkerRef = useRef(null)
   const resetCurrentImageRef = useRef(() => {})
   const clearRouteForTrainSelectionRef = useRef(() => {})
-  const [mrtData, setMrtData] = useState(null)
   const [showGuide, setShowGuide] = useState(false)
   const [showDesktopChrome, setShowDesktopChrome] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-
-    fetch(`${import.meta.env.BASE_URL}data/sg-rail.geo.json`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Failed to load rail data: ${response.status}`)
-        }
-        return response.json()
-      })
-      .then(data => {
-        if (!cancelled) setMrtData(data)
-      })
-      .catch(error => {
-        console.error(error)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const mrtData = useRailData()
 
   const { bookmarks, toggleBookmark } = useBookmarks()
   const {

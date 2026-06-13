@@ -87,11 +87,11 @@ export default function Toolbar({
                 style={{
                     ...btnBase,
                     background: is2D
-                        ? (view2dHovered ? t.buildingActiveBgHover : t.buildingActiveBg)
-                        : (view2dHovered ? t.toolbarBgHover : t.toolbarBg),
+                        ? (view2dHovered ? t.sideChromeActiveHoverBg : t.buildingActiveBg)
+                        : (view2dHovered ? t.sideChromeHoverBg : t.toolbarBg),
                     border: is2D
-                        ? `1px solid ${t.buildingActiveBorder}`
-                        : `1px solid ${t.borderToolbar}`,
+                        ? `1px solid ${view2dHovered ? t.sideChromeHoverBorder : t.buildingActiveBorder}`
+                        : `1px solid ${view2dHovered ? t.sideChromeHoverBorder : t.borderToolbar}`,
                     fontSize: '15px'
                 }}
             >
@@ -105,8 +105,8 @@ export default function Toolbar({
                 onMouseLeave={() => setResetHovered(false)}
                 style={{
                     ...btnBase,
-                    background: resetHovered ? t.toolbarBgHover : t.toolbarBg,
-                    border: `1px solid ${t.borderToolbar}`
+                    background: resetHovered ? t.sideChromeHoverBg : t.toolbarBg,
+                    border: `1px solid ${resetHovered ? t.sideChromeHoverBorder : t.borderToolbar}`
                 }}
             >
                 <Compass bearing={bearing} color={t.textPrimary} />
@@ -120,11 +120,11 @@ export default function Toolbar({
                 style={{
                     ...btnBase,
                     background: showBuildings
-                        ? (buildingHovered ? t.buildingActiveBgHover : t.buildingActiveBg)
-                        : (buildingHovered ? t.toolbarBgHover : t.toolbarBg),
+                        ? (buildingHovered ? t.sideChromeActiveHoverBg : t.buildingActiveBg)
+                        : (buildingHovered ? t.sideChromeHoverBg : t.toolbarBg),
                     border: showBuildings
-                        ? `1px solid ${t.buildingActiveBorder}`
-                        : `1px solid ${t.borderToolbar}`,
+                        ? `1px solid ${buildingHovered ? t.sideChromeHoverBorder : t.buildingActiveBorder}`
+                        : `1px solid ${buildingHovered ? t.sideChromeHoverBorder : t.borderToolbar}`,
                     fontSize: '16px'
                 }}
             >
@@ -138,8 +138,8 @@ export default function Toolbar({
                 onMouseLeave={() => setThemeHovered(false)}
                 style={{
                     ...btnBase,
-                    background: themeHovered ? t.toolbarBgHover : t.toolbarBg,
-                    border: `1px solid ${t.borderToolbar}`,
+                    background: themeHovered ? t.sideChromeHoverBg : t.toolbarBg,
+                    border: `1px solid ${themeHovered ? t.sideChromeHoverBorder : t.borderToolbar}`,
                     fontSize: '16px'
                 }}
             >

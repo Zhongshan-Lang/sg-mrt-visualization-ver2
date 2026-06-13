@@ -9,7 +9,7 @@ export function useMapLayers(mapRef, mrtData, onMapLoaded) {
     const initializeLayers = useCallback(() => {
         if (!mapRef.current || !mrtData) return
 
-        // 涓?feature 娣诲姞 code 鍜?color
+        // Enrich features with derived code and color metadata.
         enrichFeatures(mrtData)
 
         // Add MRT source
@@ -24,7 +24,7 @@ export function useMapLayers(mapRef, mrtData, onMapLoaded) {
 
 
         //==============================================================
-        // ========== 馃憞 鑷畾涔?3D 寤虹瓚鍥惧眰锛堝凡娉ㄩ噴锛屾敼鐢?MapTiler 寤虹瓚锛?=========
+        // Custom 3D building layer reference kept here for future use.
 
         // // 娣诲姞寤虹瓚鏁版嵁婧?        // mapRef.current.addSource('buildings-3d', {
         //     type: 'geojson',
@@ -70,7 +70,8 @@ export function useMapLayers(mapRef, mrtData, onMapLoaded) {
 
         //====================================================================
 
-        // // 鎶妉abel鍥惧眰绉诲埌鑷畾涔夊缓绛戜笂闈?        // if (mapRef.current.getLayer('buildings-3d-layer')) {
+        // If a custom building layer returns, station labels can be moved above it.
+        // if (mapRef.current.getLayer('buildings-3d-layer')) {
         //     mapRef.current.moveLayer('station-labels')
         //     mapRef.current.moveLayer('entrance-labels')
         // }
@@ -99,7 +100,7 @@ function enrichFeatures(mrtData) {
             else if (name.includes('Punggol')) feature.properties.code = 'PE'
         }
 
-        // 娣诲姞 color
+        // Add derived color metadata.
         if (!feature.properties.color) {
             if (feature.properties.line_color) {
                 feature.properties.color = feature.properties.line_color
@@ -142,12 +143,12 @@ function enrichFeatures(mrtData) {
                 feature.properties.outline_color = color
                 feature.properties.is_transfer = false
             } else {
-                // 鎹箻绔?鈫?姣忎釜 Polygon 鍒嗛厤涓嶅悓绾胯矾棰滆壊
+                // Transfer station polygons use per-line colors in sequence order.
                 feature.properties.is_transfer = true
                 const key = feature.properties.station_codes
                 const count = transferCounters[key] || 0
                 transferCounters[key] = count + 1
-                // 浼樺厛浣跨敤鎵嬪姩瑕嗙洊閰嶇疆
+                // Prefer the explicit override order when provided.
                 const override = transferPolygonLineOrder[key]
                 let prefix
                 if (override && count < override.length) {
@@ -185,10 +186,10 @@ function addAllLayers(map) {
         ['!', importantStationExpression]
     ]
 
-    // ========== 馃攩 娣诲姞鍏ㄥ眬鍏夌収锛堣 3D 寤虹瓚闃村奖鏇存槑鏄撅級==========
+    // Global light preset for custom 3D buildings if needed later.
     /*map.setLight({
         anchor: 'map',
-        position: [1.5, 90, 30],  // 鍏夋簮鏂瑰悜锛氭潵鑷笢鍋忓寳锛?0搴﹁
+        position: [1.5, 90, 30],
         intensity: 0.8,
         color: 'white'
     });*/
@@ -369,7 +370,7 @@ function addAllLayers(map) {
         }
     })
 
-    // 鍑哄彛鍥惧眰
+    // Station entrance layer.
     map.addLayer({
         id: 'station-entrance',
         type: 'circle',
