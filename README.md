@@ -1,57 +1,106 @@
-# React + Vite
+# Singapore MRT Visualization
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive Singapore MRT/LRT visualization built with React, Vite, MapLibre GL, and GeoJSON.
 
-Currently, two official plugins are available:
+This project is not just a static rail map. It combines network visualization, route planning, train simulation, multilingual UI, station information panels, and camera choreography into a single explorable map experience.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Highlights
 
-## React Compiler
+- Full MRT/LRT network map with real line geometry
+- Route planning with multiple strategies:
+  - `Fewest Stops`
+  - `Shortest Path`
+  - `Fewest Transfers`
+- Animated route highlighting and map camera framing
+- Station, line, and train panels
+- Simulated train movement along the network
+- Multilingual labels and UI:
+  - English
+  - Chinese
+  - Tamil
+- Light and dark themes
+- 2D / 3D map viewing modes
+- Guide modal for first-time users
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-
-
-# 新加坡轨道交通可视化交互系统
-
-基于 MapLibre GL 的新加坡 MRT/LRT 交互式可视化系统，以数字地图技术呈现全境 6 条地铁干线和 3 条轻轨线路，覆盖 140 余个站点。
-
-## 功能特性
-
-- 🚇 完整线路与站点可视化，色彩编码区分各线路
-- 🌐 三语标签自动切换（英语/中文/淡米尔语）
-- 📋 站点详情面板（图片轮播、线路轨道、出口导航）
-- 🚂 模拟列车沿实际轨道实时运行
-- 🔍 站点搜索与线路快捷导航
-- 📱 响应式设计，适配不同屏幕尺寸
-
-## 技术栈
-
-- React 18
+- React
+- Vite
 - MapLibre GL
-- Turf.js（地理计算）
-- Vite（构建工具）
-- GeoJSON（数据格式）
+- Turf.js
+- GeoJSON
 
-## 安装与运行
+## Getting Started
+
+### 1. Install dependencies
 
 ```bash
-# 安装依赖
 npm install
+```
 
-# 启动开发服务器
+### 2. Configure environment variables
+
+Create a `.env` file in the project root and provide your MapTiler key:
+
+```bash
+VITE_MAPTILER_KEY=your_maptiler_key
+```
+
+### 3. Start the dev server
+
+```bash
 npm run dev
+```
 
-# 访问
+Default local URL:
+
+```text
 http://localhost:5173
+```
 
+## Available Scripts
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+npm run test:routes
+npm run build:indexes
+```
+
+## Project Structure
+
+```text
 src/
-├── App.jsx          # 主应用组件
-├── config.js        # 线路颜色、摄像头预设
-├── data.js          # 数据处理与映射
-├── utils.js         # 线路拓扑工具函数
-└── stationImages.js # 站点图片导入
+  camera/           Camera choreography for station and line views
+  components/       Map layers, panels, search, and UI chrome
+  contexts/         Shared app context such as theme
+  data/             Static data, generated indexes, and loaders
+  hooks/            State and lifecycle hooks
+  i18n/             UI label dictionaries
+  routing/          Route algorithms, geometry, markers, and camera logic
+  styles/           Shared animation and UI styles
+  systems/train/    Train simulation, popups, panel data, and tracking
+  utils/            Shared helpers
+```
+
+## Data Notes
+
+- Core network geometry is stored in `src/data/sg-rail.geo.json`
+- Lightweight generated indexes are used to keep runtime lookups fast
+- Large experimental files that exceed GitHub's file size limit are intentionally kept out of version control
+
+## Why This Project Exists
+
+This project is a frontend / geospatial interface case study focused on:
+
+- dense transit visualization
+- map-first interaction design
+- route computation with special-case rail logic
+- multilingual information design
+- coordinated panel and camera behavior
+
+## Status
+
+Active prototype with ongoing UI, interaction, and data-structure refinement.
