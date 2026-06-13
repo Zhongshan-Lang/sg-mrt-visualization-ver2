@@ -4,7 +4,12 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const GEOJSON_PATH = path.join(ROOT, 'src/data/sg-rail.geo.json')
+const EXIT_LANDMARKS_PATH = path.join(ROOT, 'src/data/exitLandmarks.json')
+const LEGACY_MRT_DATA_PATH = path.join(ROOT, 'src/data/singapore-mrt.json')
+const STATION_IMAGES_DIR = path.join(ROOT, 'src/assets/stations')
 const OUTPUT_DIR = path.join(ROOT, 'src/data/generated')
+const PUBLIC_DATA_DIR = path.join(ROOT, 'public/data')
+const PUBLIC_STATION_IMAGES_DIR = path.join(ROOT, 'public/stations')
 
 const stationLineToActualCode = {
     CE: 'CC',
@@ -75,10 +80,15 @@ function stable(value) {
     return JSON.stringify(value, null, 2)
 }
 
-const mrtData = JSON.parse(await fs.readFile(GEOJSON_PATH, 'utf8'))
+const mrtDataRaw = await fs.readFile(GEOJSON_PATH, 'utf8')
+const exitLandmarksRaw = await fs.readFile(EXIT_LANDMARKS_PATH, 'utf8')
+const legacyMrtDataRaw = await fs.readFile(LEGACY_MRT_DATA_PATH, 'utf8')
+const mrtData = JSON.parse(mrtDataRaw)
+const legacyMrtData = JSON.parse(legacyMrtDataRaw)
 
 const stationCodeToName = {}
 const stationCodeToData = {}
+const stationCodeToCoordinates = {}
 const stationCodeGroups = {}
 const stationEntrancesByCodes = {}
 const linePropertiesByCode = {}
@@ -117,6 +127,7 @@ mrtData.features.forEach(feature => {
             zh: props.name_zh,
             ta: props.name_ta
         }
+        stationCodeToCoordinates[code] = feature.geometry.coordinates
         stationCodeGroups[code] = stationCodes
 
         const linePrefix = code.match(/[A-Z]+/)?.[0]
@@ -131,10 +142,17 @@ sortLineSequences(generatedLineSequences)
 const terminalStationCodes = getTerminalStationCodes(generatedLineSequences)
 
 await fs.mkdir(OUTPUT_DIR, { recursive: true })
+await fs.mkdir(PUBLIC_DATA_DIR, { recursive: true })
+await fs.writeFile(path.join(PUBLIC_DATA_DIR, 'sg-rail.geo.json'), mrtDataRaw, 'utf8')
+await fs.writeFile(path.join(PUBLIC_DATA_DIR, 'exitLandmarks.json'), exitLandmarksRaw, 'utf8')
+await fs.writeFile(path.join(PUBLIC_DATA_DIR, 'station-entrances.json'), stable(stationEntrancesByCodes), 'utf8')
+await fs.writeFile(path.join(PUBLIC_DATA_DIR, 'station-images.json'), stable(await buildStationImageManifest()), 'utf8')
+await fs.writeFile(path.join(PUBLIC_DATA_DIR, 'wikipedia-urls.json'), stable(buildWikipediaUrlMap(legacyMrtData)), 'utf8')
 
 await writeGeneratedModule('stationIndex.js', [
     ['stationCodeToName', stationCodeToName],
     ['stationCodeToData', stationCodeToData],
+    ['stationCodeToCoordinates', stationCodeToCoordinates],
     ['stationCodeGroups', stationCodeGroups]
 ])
 
@@ -176,4 +194,79 @@ function getTerminalStationCodes(lineSequences) {
     ;['CG2', 'CE2'].forEach(code => terminals.add(code))
 
     return [...terminals].sort()
+}
+
+async function buildStationImageManifest() {
+    const manifest = {}
+
+    await fs.mkdir(PUBLIC_STATION_IMAGES_DIR, { recursive: true })
+
+    const stationEntries = await fs.readdir(STATION_IMAGES_DIR, { withFileTypes: true })
+    for (const stationEntry of stationEntries) {
+        if (!stationEntry.isDirectory()) continue
+
+        const stationName = stationEntry.name
+        const sourceStationDir = path.join(STATION_IMAGES_DIR, stationName)
+        const targetStationDir = path.join(PUBLIC_STATION_IMAGES_DIR, stationName)
+        await fs.mkdir(targetStationDir, { recursive: true })
+
+        const fileEntries = await fs.readdir(sourceStationDir, { withFileTypes: true })
+        const imageFiles = fileEntries
+            .filter(entry => entry.isFile() && /\.(jpg|jpeg|png)$/i.test(entry.name))
+            .map(entry => entry.name)
+            .sort(naturalFileSort)
+
+        if (!imageFiles.length) continue
+
+        manifest[stationName] = []
+
+        for (const fileName of imageFiles) {
+            const sourcePath = path.join(sourceStationDir, fileName)
+            const targetPath = path.join(targetStationDir, fileName)
+            await copyFileIfChanged(sourcePath, targetPath)
+            manifest[stationName].push(`stations/${encodePathSegment(stationName)}/${encodePathSegment(fileName)}`)
+        }
+    }
+
+    return manifest
+}
+
+async function copyFileIfChanged(sourcePath, targetPath) {
+    const [sourceStat, targetStat] = await Promise.all([
+        fs.stat(sourcePath),
+        fs.stat(targetPath).catch(() => null)
+    ])
+
+    if (
+        targetStat &&
+        sourceStat.size === targetStat.size &&
+        Math.trunc(sourceStat.mtimeMs) === Math.trunc(targetStat.mtimeMs)
+    ) {
+        return
+    }
+
+    await fs.copyFile(sourcePath, targetPath)
+    await fs.utimes(targetPath, sourceStat.atime, sourceStat.mtime)
+}
+
+function naturalFileSort(a, b) {
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+}
+
+function encodePathSegment(value) {
+    return encodeURIComponent(value).replace(/%20/g, '%20')
+}
+
+function buildWikipediaUrlMap(data) {
+    const wikipediaUrlMap = {}
+
+    for (const feature of data?.features || []) {
+        const name = feature?.properties?.name
+        const wikipediaUrl = feature?.properties?.wikipedia_url
+        if (name && wikipediaUrl && !wikipediaUrlMap[name]) {
+            wikipediaUrlMap[name] = wikipediaUrl
+        }
+    }
+
+    return wikipediaUrlMap
 }

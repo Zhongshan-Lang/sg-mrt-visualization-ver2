@@ -246,7 +246,7 @@ function getSliceLength(a, b, geom) {
             .map(slice => turf.length(slice))
             .filter(length => length > 0.02)
             .sort((x, y) => x - y)[0] ?? null
-    } catch (_) {
+    } catch {
         return null
     }
 }

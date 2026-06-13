@@ -34,7 +34,7 @@ export function useRouteNavigation({
     }, [mapRef])
 
     const handleCalculateRoute = useCallback(async () => {
-        if (!navStart || !navEnd) return
+        if (!navStart || !navEnd || !mrtData?.features) return
         const {
             calculateRoute,
             createRouteMarkers,
@@ -92,7 +92,7 @@ export function useRouteNavigation({
     }, [mapRef, navEnd, navEndQuery, navStart, navStartQuery])
 
     const handleAlgorithmSwitch = useCallback(async (newAlgorithm) => {
-        if (newAlgorithm === algorithm || !navStart || !navEnd) return
+        if (newAlgorithm === algorithm || !navStart || !navEnd || !mrtData?.features) return
         const { calculateRoute, createRouteHighlight, choreographRouteCamera } = await loadRouteUtils()
         setAlgorithm(newAlgorithm)
         const route = calculateRoute(navStart, navEnd, newAlgorithm, mrtData)

@@ -97,7 +97,7 @@ export default function LinePanel({
                                                 }}
                                             >
                                                 <div style={{
-                                                    fontSize: '13px', fontWeight: '500', opacity: 0.85, textAlign: 'center',
+                                                    fontSize: '13px', fontWeight: '500', textAlign: 'center',
                                                     marginBottom: '8px', lineHeight: '16px', minHeight: '18px',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%',
                                                     whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal',

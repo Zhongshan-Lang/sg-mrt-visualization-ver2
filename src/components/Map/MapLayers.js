@@ -7,7 +7,7 @@ const terminalStationCodeSet = new Set(terminalStationCodes)
 
 export function useMapLayers(mapRef, mrtData, onMapLoaded) {
     const initializeLayers = useCallback(() => {
-        if (!mapRef.current) return
+        if (!mapRef.current || !mrtData) return
 
         // 涓?feature 娣诲姞 code 鍜?color
         enrichFeatures(mrtData)
@@ -20,7 +20,7 @@ export function useMapLayers(mapRef, mrtData, onMapLoaded) {
 
 
         // Add all map layers
-        addAllLayers(mapRef.current, mrtData)
+        addAllLayers(mapRef.current)
 
 
         //==============================================================
@@ -166,7 +166,7 @@ function enrichFeatures(mrtData) {
     })
 }
 
-function addAllLayers(map, mrtData) {
+function addAllLayers(map) {
     const stationPointFilter = ['all',
         ['==', ['geometry-type'], 'Point'],
         ['!=', ['get', 'stop_type'], 'entrance'],

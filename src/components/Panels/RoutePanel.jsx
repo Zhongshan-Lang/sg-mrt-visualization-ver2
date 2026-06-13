@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { lineColors } from '../../config'
 import { stationCodeGroups, stationCodeToData } from '../../data/generated/stationIndex'
-import { stationEntrancesByCodes } from '../../data/generated/stationEntrances'
+import { getExitLandmarksForStation } from '../../data/loaders/exitLandmarkData'
+import { getStationEntrancesForStation } from '../../data/loaders/stationEntranceData'
 import { getStationLines } from '../../routing/navigationUtils'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getPanelLabel, routeAlgorithmLabels, routePanelLabels } from '../../i18n/panelLabels'
@@ -62,10 +63,10 @@ export default function RoutePanel({
     routeResult, navStart, navEnd,
     isRoutePanelClosing, stationLabelLanguage, labelOpacity,
     algorithm, onAlgorithmChange,
-    onClose, onClearNavigation, onNavigateToStation
+    onClose, onNavigateToStation
 }) {
     const { t } = useTheme()
-    const [arrivalExitLandmarks, setArrivalExitLandmarks] = useState({})
+    const [arrivalExitState, setArrivalExitState] = useState({ stationKey: null, entrances: [], landmarks: {} })
 
     const routeLabel = (key) => getPanelLabel(routePanelLabels, key, stationLabelLanguage)
     const localLabel = (key) => extraRouteLabels[key]?.[stationLabelLanguage] || extraRouteLabels[key]?.en || key
@@ -76,24 +77,42 @@ export default function RoutePanel({
     const journeyStats = getJourneyStats(routeResult || [], transferCount)
     const fareEstimate = estimateRouteFareFromStops(journeyStats.stops)
     const timelineSteps = useMemo(() => buildTimelineSteps(routeResult), [routeResult])
+    const stationKey = useMemo(() => getStationKey(navEnd), [navEnd])
+    const arrivalExitLandmarks = useMemo(
+        () => (arrivalExitState.stationKey === stationKey ? arrivalExitState.landmarks : {}),
+        [arrivalExitState.landmarks, arrivalExitState.stationKey, stationKey]
+    )
+    const arrivalEntrances = useMemo(
+        () => (arrivalExitState.stationKey === stationKey ? arrivalExitState.entrances : []),
+        [arrivalExitState.entrances, arrivalExitState.stationKey, stationKey]
+    )
     const arrivalExit = useMemo(
-        () => getRecommendedExit(navEnd, arrivalExitLandmarks),
-        [navEnd, arrivalExitLandmarks]
+        () => getRecommendedExit(arrivalEntrances, arrivalExitLandmarks),
+        [arrivalEntrances, arrivalExitLandmarks]
     )
 
     useEffect(() => {
-        const stationKey = getStationKey(navEnd)
-        if (!stationKey) {
-            setArrivalExitLandmarks({})
-            return
-        }
+        if (!stationKey) return
 
         let cancelled = false
-        import('../../data/loaders/exitLandmarkData').then(({ getExitLandmarksForStation }) => {
-            if (!cancelled) setArrivalExitLandmarks(getExitLandmarksForStation(stationKey))
+        Promise.all([
+            getStationEntrancesForStation(stationKey),
+            getExitLandmarksForStation(stationKey)
+        ]).then(([entrances, landmarks]) => {
+            if (!cancelled) {
+                setArrivalExitState({
+                    stationKey,
+                    entrances,
+                    landmarks
+                })
+            }
+        }).catch(() => {
+            if (!cancelled) {
+                setArrivalExitState({ stationKey, entrances: [], landmarks: {} })
+            }
         })
         return () => { cancelled = true }
-    }, [navEnd])
+    }, [stationKey])
 
     if (!routeResult) return null
 
@@ -397,58 +416,6 @@ function getTransferNote(step, language) {
     return `Change to the ${line} Line. Follow station signs to the next platform.`
 }
 
-function RouteFareEstimate({ fare, language, labelOpacity, t }) {
-    return (
-        <div style={{
-            background: t.overlayMedium,
-            border: `1px solid ${t.borderMedium}`,
-            borderRadius: '10px',
-            padding: '10px 12px',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) auto',
-            columnGap: '12px',
-            alignItems: 'center'
-        }}>
-            <div style={{ minWidth: 0 }}>
-                <div style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: t.textPrimary,
-                    ...languageTextStyle(labelOpacity)
-                }}>
-                    {localServiceLabel(routeFareLabels, 'fare', language)}
-                </div>
-                <div style={{
-                    marginTop: '4px',
-                    fontSize: '10px',
-                    color: t.textSecondary,
-                    lineHeight: 1.35,
-                    ...languageTextStyle(labelOpacity, labelOpacity * 0.65)
-                }}>
-                    {localServiceLabel(routeFareLabels, 'adultCard', language)} · {fare.distanceKm.toFixed(1)} km {localServiceLabel(routeFareLabels, 'distance', language)}
-                </div>
-                <div style={{
-                    marginTop: '3px',
-                    fontSize: '10px',
-                    color: t.textSecondary,
-                    lineHeight: 1.35,
-                    ...languageTextStyle(labelOpacity, labelOpacity * 0.5)
-                }}>
-                    {localServiceLabel(routeFareLabels, 'note', language)}
-                </div>
-            </div>
-            <div style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                whiteSpace: 'nowrap',
-                color: t.textPrimary
-            }}>
-                S${fare.fare.toFixed(2)}
-            </div>
-        </div>
-    )
-}
-
 function RouteLineBadge({ line, color }) {
     return (
         <span style={{
@@ -591,73 +558,6 @@ function JourneyTimelineV2({ steps, stationLabelLanguage, labelOpacity, animated
     )
 }
 
-function JourneyTimeline({ steps, stationLabelLanguage, labelOpacity, animated, localLabel, onNavigateToStation, t }) {
-    return (
-        <div style={{ position: 'relative', paddingLeft: '12px' }}>
-            <div style={{
-                position: 'absolute', left: '5px', top: '9px', bottom: '9px',
-                width: '2px', borderRadius: '1px', background: t.textSecondary, opacity: 0.18
-            }} />
-            {steps.map((step, index) => {
-                const color = step.line ? lineColors[step.line] || '#808080' : t.textSecondary
-                const stationName = getStationName(step.station, stationLabelLanguage)
-                const endStationName = step.endStation ? getStationName(step.endStation, stationLabelLanguage) : ''
-
-                return (
-                    <div key={`${step.type}-${step.station}-${index}`} style={{
-                        display: 'grid', gridTemplateColumns: '12px minmax(0, 1fr)',
-                        columnGap: '10px', padding: index === 0 ? '0 0 10px 0' : '10px 0'
-                    }}>
-                        <span style={{
-                            width: '10px', height: '10px', borderRadius: '50%',
-                            background: step.type === 'transfer' ? t.panelBg : color,
-                            border: step.type === 'transfer' ? `2px solid ${color}` : 'none',
-                            zIndex: 1, marginTop: '4px'
-                        }} />
-                        <div style={{ minWidth: 0 }}>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: '7px',
-                                fontSize: '12px', fontWeight: 'bold', color: step.line ? color : t.textPrimary,
-                                ...animated()
-                            }}>
-                                {step.line && (
-                                    <span style={{
-                                        padding: '2px 7px', borderRadius: '999px',
-                                        color: 'white', background: color, fontSize: '10px',
-                                        flexShrink: 0
-                                    }}>{step.line}</span>
-                                )}
-                                <span>{localLabel(step.labelKey)}</span>
-                            </div>
-                            <div style={{
-                                marginTop: '4px', fontSize: '13px', lineHeight: 1.35,
-                                opacity: labelOpacity,
-                                transition: 'opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1), filter 0.45s cubic-bezier(0.22,1,0.36,1)',
-                                transform: labelOpacity === 0 ? 'translateY(4px) scale(0.95)' : 'translateY(0px) scale(1)',
-                                filter: labelOpacity === 0 ? 'blur(4px)' : 'blur(0px)'
-                            }}>
-                                <button
-                                    onClick={() => onNavigateToStation(step.station)}
-                                    style={{
-                                        border: 'none', padding: 0, background: 'transparent',
-                                        color: t.textPrimary, cursor: 'pointer',
-                                        font: 'inherit', textAlign: 'left'
-                                    }}
-                                >{stationName}</button>
-                                {step.type === 'ride' && (
-                                    <span style={{ color: t.textSecondary }}>
-                                        {' '}→ {endStationName} · {step.stopCount} {localLabel(step.stopCount === 1 ? 'stops' : 'stops')}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )
-            })}
-        </div>
-    )
-}
-
 function ArrivalExitCard({ exit, localLabel, animated, t }) {
     if (!exit) {
         return (
@@ -683,7 +583,7 @@ function ArrivalExitCard({ exit, localLabel, animated, t }) {
                 </div>
                 {exit.landmarks.length > 3 && (
                     <div style={{ marginTop: '4px', fontSize: '11px', color: t.textSecondary }}>
-                        +{exit.landmarks.length - 3} {extraRouteLabels.via.en.toLowerCase()}
+                        +{exit.landmarks.length - 3} {String(localLabel('via')).toLowerCase()}
                     </div>
                 )}
             </div>
@@ -739,14 +639,13 @@ function getStationKey(stationCode) {
     return codes.join('-')
 }
 
-function getRecommendedExit(stationCode, landmarksByExit) {
-    const stationKey = getStationKey(stationCode)
-    const entrances = [...(stationEntrancesByCodes[stationKey] || [])]
-    if (!entrances.length) return null
+function getRecommendedExit(entrances, landmarksByExit) {
+    const rankedEntrances = [...(entrances || [])]
+    if (!rankedEntrances.length) return null
 
-    entrances.sort((a, b) => naturalExitSort(a.name, b.name))
+    rankedEntrances.sort((a, b) => naturalExitSort(a.name, b.name))
 
-    const ranked = entrances
+    const ranked = rankedEntrances
         .map(entrance => ({
             name: entrance.name,
             landmarks: landmarksByExit[entrance.name] || []

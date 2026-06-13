@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run build:indexes",
     "dev": "vite",
+    "prebuild": "npm run build:indexes",
     "build": "vite build",
     "test:routes": "node scripts/routeRegressionTest.mjs",
     "build:indexes": "node scripts/buildRuntimeIndexes.mjs",

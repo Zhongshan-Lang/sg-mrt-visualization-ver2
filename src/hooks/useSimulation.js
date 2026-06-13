@@ -16,7 +16,7 @@ export function useSimulation(mapRef, mrtData) {
         trainSystemRef.current = new TrainSystem(mapRef.current, mrtData)
         trainSystemRef.current.setVisible(false)
         trainSystemRef.current.onTrainSelect = setSelectedTrain
-    }, [mrtData])
+    }, [mapRef, mrtData])
 
     const startSimulation = useCallback(() => {
         if (!mapRef.current || !mrtData) return
@@ -29,13 +29,7 @@ export function useSimulation(mapRef, mrtData) {
         setIsSimulationRunning(true)
         setShowTrains(true)
         trainSystemRef.current.setVisible(true)
-    }, [mrtData])
-
-    const stopSimulation = useCallback(() => {
-        trainSystemRef.current?.stop()
-        runningRef.current = false
-        setIsSimulationRunning(false)
-    }, [])
+    }, [mapRef, mrtData])
 
     const toggleSimulation = useCallback(() => {
         if (runningRef.current) {

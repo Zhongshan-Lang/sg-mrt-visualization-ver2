@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import { stationLineToActualCode, lineColors } from '../../config'
 import { stationCodeToData } from '../../data/generated/stationIndex'
-import { stationEntrancesByCodes } from '../../data/generated/stationEntrances'
 import { linePropertiesByCode, generatedLineSequences } from '../../data/generated/lineIndex'
-import { flyToLine, getStationConnections } from '../../utils/stationUtils'
+import { getExitLandmarksForStation } from '../../data/loaders/exitLandmarkData'
+import { getStationEntrancesForStation } from '../../data/loaders/stationEntranceData'
+import { findLineFeature, flyToLine, getStationConnections } from '../../utils/stationUtils'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getPanelLabel, stationPanelLabels } from '../../i18n/panelLabels'
 import { languageTextStyle } from '../../utils/languageAnimation'
@@ -16,6 +17,7 @@ import PanelShell from '../UI/PanelShell'
 export default function StationPanel({
     selectedStation, isClosing, isEntering, bookmarks,
     onClose, onToggleBookmark, onNavigateToStation,
+    mrtData,
     mapRef, setSelectedLine, setSelectedLines, setIsEntering,
     stationLabelLanguage, labelOpacity,
     images = [],
@@ -27,9 +29,18 @@ export default function StationPanel({
     const [isButtonHovered, setIsButtonHovered] = useState(false)
     const [arrivals, setArrivals] = useState([])
     const [wikipediaUrl, setWikipediaUrl] = useState('#')
-    const [exitLandmarksByExit, setExitLandmarksByExit] = useState({})
+    const [exitDataState, setExitDataState] = useState({ stationCodes: null, entrances: [], landmarks: {} })
     const panelLabel = (key) => getPanelLabel(stationPanelLabels, key, stationLabelLanguage)
     const animated = (opacity = labelOpacity) => languageTextStyle(labelOpacity, opacity)
+    const selectedStationCodes = selectedStation?.station_codes || ''
+    const selectedStationName = selectedStation?.name || ''
+    const stationEntrances = useMemo(() => {
+        if (exitDataState.stationCodes !== selectedStationCodes) return []
+        return [...(exitDataState.entrances || [])].sort((a, b) => naturalExitSort(a.name, b.name))
+    }, [exitDataState.entrances, exitDataState.stationCodes, selectedStationCodes])
+    const exitLandmarksByExit = exitDataState.stationCodes === selectedStationCodes
+        ? exitDataState.landmarks
+        : {}
 
     // 每 3 秒轮询列车到站信息（必须在 early return 之前）
     useEffect(() => {
@@ -40,7 +51,9 @@ export default function StationPanel({
                 const all = []
                 codes.forEach(c => { all.push(...getArrivals(c)) })
                 setArrivals(all)
-            } catch (_) {}
+            } catch {
+                // Keep polling even if one arrival aggregation fails.
+            }
         }
         poll()
         const timer = setInterval(poll, 3000)
@@ -48,25 +61,39 @@ export default function StationPanel({
     }, [selectedStation, getArrivals])
 
     useEffect(() => {
-        if (!selectedStation) return
+        if (!selectedStationName) return
         let cancelled = false
         import('../../data/loaders/wikipediaData').then(({ getWikipediaUrl }) => {
-            if (!cancelled) setWikipediaUrl(getWikipediaUrl(selectedStation.name))
+            getWikipediaUrl(selectedStationName).then(url => {
+                if (!cancelled) setWikipediaUrl(url)
+            }).catch(() => {
+                if (!cancelled) setWikipediaUrl('#')
+            })
         })
         return () => { cancelled = true }
-    }, [selectedStation?.name])
+    }, [selectedStationName])
 
     useEffect(() => {
-        if (!selectedStation) {
-            setExitLandmarksByExit({})
-            return
-        }
+        if (!selectedStationCodes) return
         let cancelled = false
-        import('../../data/loaders/exitLandmarkData').then(({ getExitLandmarksForStation }) => {
-            if (!cancelled) setExitLandmarksByExit(getExitLandmarksForStation(selectedStation.station_codes))
+        Promise.all([
+            getStationEntrancesForStation(selectedStationCodes),
+            getExitLandmarksForStation(selectedStationCodes)
+        ]).then(([entrances, landmarks]) => {
+            if (!cancelled) {
+                setExitDataState({
+                    stationCodes: selectedStationCodes,
+                    entrances,
+                    landmarks
+                })
+            }
+        }).catch(() => {
+            if (!cancelled) {
+                setExitDataState({ stationCodes: selectedStationCodes, entrances: [], landmarks: {} })
+            }
         })
         return () => { cancelled = true }
-    }, [selectedStation?.station_codes])
+    }, [selectedStationCodes])
 
     if (!selectedStation) return null
     const displayImages = images.length > 0
@@ -75,20 +102,6 @@ export default function StationPanel({
 
     const stationConnections = getStationConnections(selectedStation.station_codes || '', generatedLineSequences)
 
-    const stationEntrances = (() => {
-        const targetCodes = selectedStation.station_codes || ''
-        const exits = [...(stationEntrancesByCodes[targetCodes] || [])]
-        // Natural sort: numbers before letters, numeric ordering for digits
-        exits.sort((a, b) => {
-            const na = a.name, nb = b.name
-            const ia = parseInt(na), ib = parseInt(nb)
-            if (!isNaN(ia) && !isNaN(ib)) return ia - ib
-            if (!isNaN(ia)) return -1
-            if (!isNaN(ib)) return 1
-            return na.localeCompare(nb)
-        })
-        return exits
-    })()
 
     // Look up landmarks for a station+exit combination
     const getExitLandmarks = (exitName) => {
@@ -202,7 +215,7 @@ export default function StationPanel({
                                     onClose()
                                     const lineProperties = linePropertiesByCode[actualCode]
                                     if (lineProperties && mapRef.current) {
-                                        flyToLine(actualCode, mapRef, setSelectedLine, setSelectedLines, setIsEntering)
+                                        flyToLine(actualCode, mapRef, setSelectedLine, setSelectedLines, setIsEntering, findLineFeature(mrtData, actualCode))
                                     }
                                 }}
                                     onMouseEnter={(e) => {
@@ -554,4 +567,12 @@ function StationFacilitiesSection({ facilities, language, labelOpacity, t }) {
             </div>
         </div>
     )
+}
+
+function naturalExitSort(a, b) {
+    const ia = parseInt(a), ib = parseInt(b)
+    if (!isNaN(ia) && !isNaN(ib)) return ia - ib
+    if (!isNaN(ia)) return -1
+    if (!isNaN(ib)) return 1
+    return String(a).localeCompare(String(b))
 }

@@ -62,6 +62,7 @@ export function usePanelState({
     }, [])
 
     const navigateToStation = useCallback((stationCode) => {
+        if (!mrtData?.features) return
         if (activeEntranceMarkerRef.current) {
             activeEntranceMarkerRef.current.remove()
             activeEntranceMarkerRef.current = null

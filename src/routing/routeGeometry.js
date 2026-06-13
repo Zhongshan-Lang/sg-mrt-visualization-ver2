@@ -76,7 +76,9 @@ const trySliceBothWays = (a, b, geom) => {
                     .sort((a, b) => a.length - b.length)
 
                 if (candidates.length > 0) return orientSlice(candidates[0].slice, a, b)
-            } catch (_) {}
+            } catch {
+                // Ignore slice failures and fall back to the next geometry candidate.
+            }
             return null
         }
 

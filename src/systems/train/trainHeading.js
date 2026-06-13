@@ -20,7 +20,7 @@ export function computeTrainHeading(train, fallbackBearing) {
         const end = turf.along(line, d2).geometry.coordinates
 
         return turf.bearing(turf.point(start), turf.point(end))
-    } catch (_) {
+    } catch {
         return fallbackBearing
     }
 }

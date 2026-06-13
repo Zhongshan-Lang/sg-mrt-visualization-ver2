@@ -5,22 +5,32 @@ export function useImageCarousel(selectedStation) {
     const [currentImage, setCurrentImage] = useState(0)
     const [isImageHovered, setIsImageHovered] = useState(false)
     const [images, setImages] = useState([])
+    const stationCodes = selectedStation?.station_codes || ''
+    const stationName = selectedStation?.name || ''
 
     useEffect(() => {
-        setCurrentImage(0)
-        setImages([])
-        if (!selectedStation) return
+        if (!stationName) return
 
         let cancelled = false
-        loadStationImages(selectedStation.name).then(loadedImages => {
-            if (!cancelled) setImages(loadedImages)
-        })
+        loadStationImages(stationName)
+            .then(loadedImages => {
+                if (!cancelled) {
+                    setImages(loadedImages)
+                    setCurrentImage(0)
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setImages([])
+                    setCurrentImage(0)
+                }
+            })
 
         return () => { cancelled = true }
-    }, [selectedStation?.station_codes, selectedStation?.name])
+    }, [stationCodes, stationName])
 
     useEffect(() => {
-        if (!selectedStation) return
+        if (!stationCodes) return
         if (images.length <= 1) return
         if (isImageHovered) return
 
@@ -31,7 +41,7 @@ export function useImageCarousel(selectedStation) {
         }, 3250)
 
         return () => clearInterval(timer)
-    }, [currentImage, selectedStation, isImageHovered, images])
+    }, [images, isImageHovered, stationCodes])
 
     return { currentImage, setCurrentImage, isImageHovered, setIsImageHovered, images }
 }

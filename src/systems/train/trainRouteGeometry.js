@@ -286,16 +286,16 @@ function buildBranchStations(codes, geomCoords, branchCoords, allCoords) {
         if (!coord) return
 
         const isBranchStation = code.startsWith('CG') || code.startsWith('CE')
-        let dist = 0
-
-        if (isBranchStation) {
+        const dist = isBranchStation
+            ? (() => {
             const snapped = turf.nearestPointOnLine(branchLine, turf.point(coord))
             const branchDist = snapped?.properties?.location || 0
-            dist = mainLen + branchDist
-        } else {
+            return mainLen + branchDist
+        })()
+            : (() => {
             const snapped = turf.nearestPointOnLine(mainLine, turf.point(coord))
-            dist = snapped?.properties?.location || 0
-        }
+            return snapped?.properties?.location || 0
+        })()
 
         result.push({ code, distance: dist })
     })

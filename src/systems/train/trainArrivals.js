@@ -51,7 +51,9 @@ export function buildStationArrivals({ stationCode, trains, routeStations, route
                 etaMin: Math.round(etaMin),
                 terminal: getTerminalCode(train, stations),
             })
-        } catch (_) { }
+        } catch {
+            // Skip trains that cannot produce a valid arrival estimate for this station.
+        }
     })
 
     const groups = {}

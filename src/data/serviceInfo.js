@@ -1,7 +1,7 @@
 export const stationFacilityLabels = {
     title: {
         en: 'Facilities',
-        zh: '车站设施',
+        zh: '设施',
         ta: 'நிலைய வசதிகள்'
     },
     accessibility: {
@@ -16,7 +16,7 @@ export const stationFacilityLabels = {
     },
     tactile: {
         en: 'Tactile guidance',
-        zh: '触觉导向',
+        zh: '盲道引导',
         ta: 'தொட்டு உணரும் வழிகாட்டி'
     },
     wideGate: {
@@ -51,12 +51,12 @@ export const stationFacilityLabels = {
     },
     pending: {
         en: 'Station-specific data pending',
-        zh: '逐站资料待补充',
+        zh: '站点详细数据待补充',
         ta: 'நிலைய வாரியான தரவு நிலுவையில் உள்ளது'
     },
     generalHours: {
         en: 'Most MRT/LRT services run from early morning to around midnight. Check official timings for this station.',
-        zh: '多数 MRT/LRT 服务从清晨运营至午夜前后。本站精确时间需接入官方时刻表。',
+        zh: '大多数 MRT/LRT 服务从清晨运营至午夜前后，本站精确时刻请以官方信息为准。',
         ta: 'பெரும்பாலான MRT/LRT சேவைகள் அதிகாலை முதல் நள்ளிரவு வரை இயங்கும். இந்த நிலையத்திற்கான சரியான நேரத்தை அதிகாரப்பூர்வ அட்டவணையில் சரிபார்க்கவும்.'
     }
 }
@@ -73,13 +73,13 @@ export const routeFareLabels = {
         ta: 'வயது வந்தோர் அட்டை'
     },
     distance: {
-        en: 'estimated distance',
-        zh: '估算距离',
+        en: 'Estimated distance',
+        zh: '预计距离',
         ta: 'மதிப்பிடப்பட்ட தூரம்'
     },
     note: {
         en: 'Distance-based estimate. Use official fare tools for exact fares.',
-        zh: '基于距离分段的估算，精确票价请以官方查询为准。',
+        zh: '基于距离的估算，精确票价请以官方票价工具为准。',
         ta: 'தூர அடிப்படையிலான மதிப்பீடு. துல்லிய கட்டணத்திற்கு அதிகாரப்பூர்வ கருவியைப் பயன்படுத்தவும்.'
     }
 }

@@ -131,6 +131,8 @@ function appendDash(output, segments, globalStart, globalEnd) {
                     properties: { color: segment.color }
                 })
             }
-        } catch (_) {}
+        } catch {
+            // Ignore invalid partial slices and continue assembling the highlight.
+        }
     }
 }

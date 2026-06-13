@@ -1,6 +1,5 @@
-import { Suspense, lazy, useCallback, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import mrtData from './data/sg-rail.geo.json'
 
 import { animations, globalStyles } from './styles/animations'
 import { useBookmarks } from './hooks/useBookmarks'
@@ -34,8 +33,31 @@ function App() {
   const activeEntranceMarkerRef = useRef(null)
   const resetCurrentImageRef = useRef(() => {})
   const clearRouteForTrainSelectionRef = useRef(() => {})
+  const [mrtData, setMrtData] = useState(null)
   const [showGuide, setShowGuide] = useState(false)
   const [showDesktopChrome, setShowDesktopChrome] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch(`${import.meta.env.BASE_URL}data/sg-rail.geo.json`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to load rail data: ${response.status}`)
+        }
+        return response.json()
+      })
+      .then(data => {
+        if (!cancelled) setMrtData(data)
+      })
+      .catch(error => {
+        console.error(error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const { bookmarks, toggleBookmark } = useBookmarks()
   const {
@@ -81,7 +103,6 @@ function App() {
     setIsImageHovered,
     images: stationPanelImages
   } = useImageCarousel(panel.selectedStation)
-  resetCurrentImageRef.current = () => setCurrentImage(0)
 
   const route = useRouteNavigation({
     mapRef,
@@ -91,7 +112,14 @@ function App() {
     setShowNavigation: panel.setShowNavigation,
     setIsNavClosing: panel.setIsNavClosing
   })
-  clearRouteForTrainSelectionRef.current = route.clearRouteForTrainSelection
+
+  useEffect(() => {
+    resetCurrentImageRef.current = () => setCurrentImage(0)
+  }, [setCurrentImage])
+
+  useEffect(() => {
+    clearRouteForTrainSelectionRef.current = route.clearRouteForTrainSelection
+  }, [route.clearRouteForTrainSelection])
 
   const map = useMapLifecycle({
     theme,
@@ -118,98 +146,92 @@ function App() {
     setCurrentImage,
     setPopupLines: panel.setPopupLines
   })
+  const setStationLabelLayerVisibility = map.setStationLabelLayerVisibility
 
   useCloseOnEscape(panel.closePanel, panel.closeLinePanel)
 
-  const chromeVisibilityStyle = {
-    opacity: showDesktopChrome ? 1 : 0,
-    pointerEvents: showDesktopChrome ? 'auto' : 'none',
-    transition: 'opacity 0.22s ease'
+  useEffect(() => {
+    setStationLabelLayerVisibility(showDesktopChrome)
+  }, [setStationLabelLayerVisibility, showDesktopChrome])
+
+  const handleDesktopChromeToggle = () => {
+    setShowDesktopChrome(prev => !prev)
   }
 
   return (
     <>
       <style>{animations + globalStyles}</style>
 
-      <div style={chromeVisibilityStyle}>
-        <TopBar
-          searchQuery={panel.searchQuery}
-          setSearchQuery={panel.setSearchQuery}
-          bookmarks={bookmarks}
-          showBookmarks={panel.showBookmarks}
-          setShowBookmarks={panel.setShowBookmarks}
-          showNavigation={panel.showNavigation}
-          setShowNavigation={panel.setShowNavigation}
-          isBookmarksClosing={panel.isBookmarksClosing}
-          setIsBookmarksClosing={panel.setIsBookmarksClosing}
-          isNavClosing={panel.isNavClosing}
-          setIsNavClosing={panel.setIsNavClosing}
-          isSearchClosing={panel.isSearchClosing}
-          setIsSearchClosing={panel.setIsSearchClosing}
-          navStart={route.navStart}
-          setNavStart={route.setNavStart}
-          navEnd={route.navEnd}
-          setNavEnd={route.setNavEnd}
-          navStartQuery={route.navStartQuery}
-          setNavStartQuery={route.setNavStartQuery}
-          navEndQuery={route.navEndQuery}
-          setNavEndQuery={route.setNavEndQuery}
-          routeResult={route.routeResult}
-          showRoutePanel={route.showRoutePanel}
-          onSwapNavStations={route.swapNavStations}
-          onNavigateToStation={panel.navigateToStation}
-          onCalculateRoute={route.handleCalculateRoute}
-          onClearNavigation={route.clearNavigation}
-          stationLabelLanguage={stationLabelLanguage}
-          onCycleLanguage={cycleLanguageNow}
-          isLanguageLocked={isLanguageLocked}
-          onToggleLanguageLock={toggleLanguageLock}
-          onOpenGuide={() => setShowGuide(true)}
-        />
-      </div>
+      <TopBar
+        chromeVisible={showDesktopChrome}
+        searchQuery={panel.searchQuery}
+        setSearchQuery={panel.setSearchQuery}
+        bookmarks={bookmarks}
+        showBookmarks={panel.showBookmarks}
+        setShowBookmarks={panel.setShowBookmarks}
+        showNavigation={panel.showNavigation}
+        setShowNavigation={panel.setShowNavigation}
+        isBookmarksClosing={panel.isBookmarksClosing}
+        setIsBookmarksClosing={panel.setIsBookmarksClosing}
+        isNavClosing={panel.isNavClosing}
+        setIsNavClosing={panel.setIsNavClosing}
+        isSearchClosing={panel.isSearchClosing}
+        setIsSearchClosing={panel.setIsSearchClosing}
+        navStart={route.navStart}
+        setNavStart={route.setNavStart}
+        navEnd={route.navEnd}
+        setNavEnd={route.setNavEnd}
+        navStartQuery={route.navStartQuery}
+        setNavStartQuery={route.setNavStartQuery}
+        navEndQuery={route.navEndQuery}
+        setNavEndQuery={route.setNavEndQuery}
+        routeResult={route.routeResult}
+        showRoutePanel={route.showRoutePanel}
+        onSwapNavStations={route.swapNavStations}
+        onNavigateToStation={panel.navigateToStation}
+        onCalculateRoute={route.handleCalculateRoute}
+        onClearNavigation={route.clearNavigation}
+        stationLabelLanguage={stationLabelLanguage}
+        onCycleLanguage={cycleLanguageNow}
+        isLanguageLocked={isLanguageLocked}
+        onToggleLanguageLock={toggleLanguageLock}
+        onOpenGuide={() => setShowGuide(true)}
+      />
 
-      <div style={chromeVisibilityStyle}>
-        <LineBar
-          allLines={map.allLines}
-          mapRef={mapRef}
-          setSelectedStation={panel.setSelectedStation}
-          setIsClosing={panel.setIsClosing}
-          setSelectedLine={panel.setSelectedLine}
-          setSelectedLines={panel.setSelectedLines}
-          setIsEntering={panel.setIsEntering}
-          setHoveredLines={panel.setHoveredLines}
-          isSimulationRunning={isSimulationRunning}
-          simSpeed={simSpeed}
-          onToggleSimulation={toggleSimulation}
-          onCycleSpeed={cycleSpeed}
-          showTrains={showTrains}
-          onToggleTrainVisibility={toggleTrainVisibility}
-        />
-      </div>
+      <LineBar
+        chromeVisible={showDesktopChrome}
+        allLines={map.allLines}
+        mapRef={mapRef}
+        setSelectedStation={panel.setSelectedStation}
+        setIsClosing={panel.setIsClosing}
+        setSelectedLine={panel.setSelectedLine}
+        setSelectedLines={panel.setSelectedLines}
+        setIsEntering={panel.setIsEntering}
+        setHoveredLines={panel.setHoveredLines}
+        isSimulationRunning={isSimulationRunning}
+        simSpeed={simSpeed}
+        onToggleSimulation={toggleSimulation}
+        onCycleSpeed={cycleSpeed}
+        showTrains={showTrains}
+        onToggleTrainVisibility={toggleTrainVisibility}
+      />
 
-      <div style={chromeVisibilityStyle}>
-        <Toolbar
-          mapRef={mapRef}
-          showBuildings={map.showBuildings}
-          onToggleBuildings={map.toggleBuildings}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          is2D={map.isMap2D}
-          bearing={map.mapBearing}
-          onToggle2D3D={map.handleToggle2D3D}
-          bottom={62}
-        />
-      </div>
+      <Toolbar
+        chromeVisible={showDesktopChrome}
+        mapRef={mapRef}
+        showBuildings={map.showBuildings}
+        onToggleBuildings={map.toggleBuildings}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        is2D={map.isMap2D}
+        bearing={map.mapBearing}
+        onToggle2D3D={map.handleToggle2D3D}
+        bottom={62}
+      />
 
       <DesktopChromeToggle
         visible={showDesktopChrome}
-        onToggle={() => {
-          setShowDesktopChrome(prev => {
-            const next = !prev
-            map.setStationNameOpacity(next ? 1 : 0)
-            return next
-          })
-        }}
+        onToggle={handleDesktopChromeToggle}
       />
 
       <div ref={mapContainer} style={{ width: '100vw', height: '100vh' }} />
@@ -251,6 +273,7 @@ function App() {
             onClose={panel.closePanel}
             onToggleBookmark={toggleBookmark}
             onNavigateToStation={panel.navigateToStation}
+            mrtData={mrtData}
             mapRef={mapRef}
             setSelectedLine={panel.setSelectedLine}
             setSelectedLines={panel.setSelectedLines}
@@ -285,6 +308,7 @@ function App() {
 
         {selectedTrain && (
           <TrainPanel
+            key={selectedTrain.id}
             trainData={selectedTrain}
             isTrainPanelClosing={panel.isTrainPanelClosing}
             stationLabelLanguage={stationLabelLanguage}

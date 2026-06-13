@@ -1,14 +1,35 @@
-import exitLandmarks from '../exitLandmarks.json'
+let exitLandmarkMapPromise = null
 
-export function getExitLandmarksForStation(stationCodes) {
-    const parts = (stationCodes || '').split('-').sort()
-    const normalizedStationKey = parts.join('-')
+export async function getExitLandmarksForStation(stationCodes) {
+    const exitLandmarkMap = await loadExitLandmarkMap()
+    return exitLandmarkMap[normalizeStationKey(stationCodes)] || {}
+}
 
-    for (const key of Object.keys(exitLandmarks)) {
-        if (key.split('-').sort().join('-') === normalizedStationKey) {
-            return exitLandmarks[key] || {}
-        }
+async function loadExitLandmarkMap() {
+    if (!exitLandmarkMapPromise) {
+        exitLandmarkMapPromise = fetch(`${import.meta.env.BASE_URL}data/exitLandmarks.json`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load exit landmarks: ${response.status}`)
+                }
+                return response.json()
+            })
+            .then(data => {
+                const normalized = {}
+                Object.entries(data || {}).forEach(([key, value]) => {
+                    normalized[normalizeStationKey(key)] = value || {}
+                })
+                return normalized
+            })
     }
 
-    return {}
+    return exitLandmarkMapPromise
+}
+
+function normalizeStationKey(stationCodes) {
+    return String(stationCodes || '')
+        .split('-')
+        .filter(Boolean)
+        .sort()
+        .join('-')
 }

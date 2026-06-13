@@ -263,7 +263,11 @@ export class TrainSystem {
         this.lastTime = now
         dt *= this.speedMultiplier
         this.trains.forEach(train => {
-            try { this.updateTrain(train, dt) } catch (_) { }
+            try {
+                this.updateTrain(train, dt)
+            } catch {
+                // Keep the simulation running even if one train frame fails.
+            }
         })
 
         // Refresh panel + keep the tracking camera locked to the selected train.

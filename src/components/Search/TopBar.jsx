@@ -1,11 +1,11 @@
 ﻿import { useRef, useState } from 'react'
-import mrtData from '../../data/sg-rail.geo.json'
 import { stationLineToActualCode, lineColors } from '../../config'
-import { stationCodeToData } from '../../data/generated/stationIndex'
+import { stationCodeGroups, stationCodeToData } from '../../data/generated/stationIndex'
 import { searchStations } from '../../utils/stationUtils'
 import { useTheme } from '../../contexts/ThemeContext'
 
 export default function TopBar({
+    chromeVisible = true,
     searchQuery, setSearchQuery,
     bookmarks,
     showBookmarks, setShowBookmarks,
@@ -77,7 +77,14 @@ export default function TopBar({
     return (
         <div style={{
             position: 'absolute', top: 20, left: '50%',
-            transform: 'translateX(-50%)', zIndex: 20, width: 'min(430px, calc(100vw - 32px))'
+            transform: chromeVisible ? 'translateX(-50%) translateY(0px)' : 'translateX(-50%) translateY(-14px)',
+            opacity: chromeVisible ? 1 : 0,
+            filter: chromeVisible ? 'blur(0px)' : 'blur(8px)',
+            pointerEvents: chromeVisible ? 'auto' : 'none',
+            visibility: chromeVisible ? 'visible' : 'hidden',
+            transition: 'opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s ease, visibility 0.28s step-end',
+            willChange: 'opacity, transform, filter',
+            zIndex: 20, width: 'min(430px, calc(100vw - 32px))'
         }}>
             <div style={{
                 display: 'flex', alignItems: 'center',
@@ -311,12 +318,7 @@ export default function TopBar({
                         </div>
                     ) : (
                         bookmarks.map((code, index) => {
-                            const feature = mrtData.features.find(f =>
-                                f.geometry.type === 'Point' &&
-                                f.properties.stop_type !== 'entrance' &&
-                                f.properties.type !== 'subway' &&
-                                (f.properties.station_codes || '').split('-').includes(code)
-                            )
+                            const feature = getStationFeatureByCode(code)
                             if (!feature) return null
                             return (
                                 <StationResultRow
@@ -336,6 +338,21 @@ export default function TopBar({
             )}
         </div>
     )
+}
+
+function getStationFeatureByCode(code) {
+    const stationCodes = stationCodeGroups[code]
+    const stationData = stationCodeToData[code]
+    if (!stationCodes || !stationData) return null
+
+    return {
+        properties: {
+            name: stationData.en,
+            name_zh: stationData.zh,
+            name_ta: stationData.ta,
+            station_codes: stationCodes.join('-')
+        }
+    }
 }
 
 function NavStationField({ label, value, query, results, onClear, onQuery, onSelect, t }) {

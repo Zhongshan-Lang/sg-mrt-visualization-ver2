@@ -36,43 +36,33 @@ export default function TrainPanel({
     const { t } = useTheme()
     const listRef = useRef(null)
     const [trackingView, setTrackingView] = useState('bird')
+    const activeTrainData = trainData || {}
+    const lineColor = activeTrainData.lineColor || '#808080'
+    const stations = activeTrainData.stations || []
+    const dir = activeTrainData.direction || 1
+    const atStation = Boolean(activeTrainData.waitTimer > 0 || activeTrainData.braking)
+    const activeIdx = atStation
+        ? activeTrainData.currentStationIndex
+        : activeTrainData.currentStationIndex + dir
+    const activeCode = atStation ? activeTrainData.curCode : activeTrainData.nextCode
+    const activeCodes = getAllCodesForStation(activeCode)
+    const orderedStations = dir === 1 ? stations : [...stations].reverse()
+    const cruisingSpeed = activeTrainData.targetSpeed || 0.01
+    const stationETAs = {}
 
     const switchView = (mode) => {
         setTrackingView(mode)
         if (window.__trainSystem) window.__trainSystem.setTrackingView(mode)
     }
 
-    useEffect(() => {
-        setTrackingView('bird')
-    }, [trainData?.id])
-
-    if (!trainData) return null
-
     const ul = (key) => getLocalizedLabel(trainPanelLabels, key, stationLabelLanguage)
     const stationName = (code) => stationCodeToData[code]?.[stationLabelLanguage] || code
     const animated = (opacity = labelOpacity) => animatedLanguageStyle(labelOpacity, opacity)
-
-    const lineColor = trainData.lineColor || '#808080'
-    const stations = trainData.stations || []
-    const dir = trainData.direction
-
-    const atStation = trainData.waitTimer > 0 || trainData.braking
-    const activeIdx = atStation
-        ? trainData.currentStationIndex
-        : trainData.currentStationIndex + dir
-    const activeCode = atStation ? trainData.curCode : trainData.nextCode
     const activeName = stationName(activeCode)
-    const activeCodes = getAllCodesForStation(activeCode)
+    const DWELL = 25
 
-    // Build full station list in direction order with ETAs
-    const orderedStations = dir === 1 ? stations : [...stations].reverse()
-    const cruisingSpeed = trainData.targetSpeed || 0.01 // km/s
-    const DWELL = 25 // seconds per station stop
-
-    // Compute cumulative ETA (minutes) for each upcoming station
-    let cumSec = atStation ? trainData.waitTimer : 0
-    let prevDist = trainData.distance
-    const stationETAs = {}
+    let cumSec = atStation ? activeTrainData.waitTimer : 0
+    let prevDist = activeTrainData.distance
     for (const stn of orderedStations) {
         const origIdx = stations.indexOf(stn)
         const isAhead = dir === 1 ? origIdx >= activeIdx : origIdx <= activeIdx
@@ -85,12 +75,13 @@ export default function TrainPanel({
         }
     }
 
-    // Auto-scroll to keep active station visible
     useEffect(() => {
-        if (!listRef.current || activeIdx == null) return
+        if (!trainData || !listRef.current || activeIdx == null) return
         const el = listRef.current.querySelector(`[data-stn-idx="${activeIdx}"]`)
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, [activeIdx])
+    }, [activeIdx, trainData])
+
+    if (!trainData) return null
 
     return (
         <PanelShell
@@ -210,7 +201,7 @@ export default function TrainPanel({
                             position: 'absolute', left: '13px', top: '8px', bottom: '8px',
                             width: '2px', background: lineColor, opacity: 0.3, borderRadius: '1px'
                         }} />
-                        {orderedStations.map((stn, i) => {
+                        {orderedStations.map((stn) => {
                             const code = stn.code
                             const name = stationName(code)
                             const origIdx = stations.indexOf(stn)

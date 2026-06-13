@@ -16,6 +16,7 @@ function Compass({ bearing, color }) {
 }
 
 export default function Toolbar({
+    chromeVisible = true,
     mapRef,
     showBuildings,
     onToggleBuildings,
@@ -69,7 +70,14 @@ export default function Toolbar({
             zIndex: 15,
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px'
+            gap: '6px',
+            transform: chromeVisible ? 'translateX(0px)' : 'translateX(18px)',
+            opacity: chromeVisible ? 1 : 0,
+            filter: chromeVisible ? 'blur(0px)' : 'blur(8px)',
+            pointerEvents: chromeVisible ? 'auto' : 'none',
+            visibility: chromeVisible ? 'visible' : 'hidden',
+            transition: 'opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s ease, visibility 0.28s step-end',
+            willChange: 'opacity, transform, filter'
         }}>
             <div
                 onClick={onToggle2D3D}

@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf'
 import { lineCameraPresets } from '../config'
-import mrtData from '../data/sg-rail.geo.json'
+import { stationCodeToCoordinates } from '../data/generated/stationIndex'
 import { generatedLineSequences } from '../data/generated/lineIndex'
 import { lrtLineHubs } from '../routing/specialLineRules'
 
@@ -27,7 +27,7 @@ export function startLineTourCamera(mapRef, lineCode, lineFeature) {
 
     stopLineTourCamera()
 
-    const fullLineFeature = findFullLineFeature(lineCode) || lineFeature
+    const fullLineFeature = lineFeature
     const terminalLine = getTerminalStationLine(lineCode)
     const tourLine = getLineGeometryForTour(fullLineFeature, terminalLine, lineCode) || terminalLine || getPrimaryLineString(fullLineFeature)
     if (!tourLine) {
@@ -44,13 +44,6 @@ export function startLineTourCamera(mapRef, lineCode, lineFeature) {
 
     flyToLineOverview(map, preset, terminalLine || tourLine)
     schedule(activeTour, OVERVIEW_DURATION_MS + OVERVIEW_HOLD_MS, () => runLineCruise(map, preset, tourLine))
-}
-
-function findFullLineFeature(lineCode) {
-    return mrtData.features.find(feature =>
-        feature.properties?.code === lineCode &&
-        (feature.geometry?.type === 'LineString' || feature.geometry?.type === 'MultiLineString')
-    )
 }
 
 export function stopLineTourCamera({ stopMapAnimation = false } = {}) {
@@ -566,13 +559,7 @@ function filterCodes(lineCode, pattern) {
 }
 
 function findStationCoordinates(stationCode) {
-    const feature = mrtData.features.find(item => {
-        if (item.geometry?.type !== 'Point') return false
-        if (item.properties?.stop_type === 'entrance') return false
-        if (item.properties?.type === 'subway') return false
-        return (item.properties?.station_codes || '').split('-').includes(stationCode)
-    })
-    return feature?.geometry?.coordinates || null
+    return stationCodeToCoordinates[stationCode] || null
 }
 
 function shortestBearingDelta(from, to) {

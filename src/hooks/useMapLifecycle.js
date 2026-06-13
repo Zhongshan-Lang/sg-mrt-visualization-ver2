@@ -11,6 +11,7 @@ import { useMapThemeStyle } from './useMapThemeStyle'
 const STATION_LABEL_OPACITY_STORAGE_KEY = 'mrt-station-label-opacity'
 const BASE_STATION_LABEL_OPACITY = ['interpolate', ['linear'], ['zoom'], 8, 0, 10, 0.3, 12, 0.6, 14, 1, 16, 0.8, 18, 0.4, 20, 0]
 const BASE_ENTRANCE_LABEL_OPACITY = 0.7
+const STATION_LABEL_VISIBILITY_FADE_MS = 220
 
 function applyStationLabelOpacity(map, opacity) {
     if (!map) return
@@ -21,7 +22,7 @@ function applyStationLabelOpacity(map, opacity) {
         map.setPaintProperty(
             'station-labels',
             'text-opacity',
-            next === 0 ? 0 : ['*', BASE_STATION_LABEL_OPACITY, next]
+            ['*', BASE_STATION_LABEL_OPACITY, next]
         )
     }
 
@@ -29,8 +30,36 @@ function applyStationLabelOpacity(map, opacity) {
         map.setPaintProperty(
             'entrance-labels',
             'text-opacity',
-            next === 0 ? 0 : BASE_ENTRANCE_LABEL_OPACITY * next
+            BASE_ENTRANCE_LABEL_OPACITY * next
         )
+    }
+}
+
+function applyStationLabelVisibility(map, visible) {
+    if (!map) return
+
+    const visibility = visible ? 'visible' : 'none'
+
+    if (map.getLayer('station-labels')) {
+        map.setLayoutProperty('station-labels', 'visibility', visibility)
+    }
+
+    if (map.getLayer('entrance-labels')) {
+        map.setLayoutProperty('entrance-labels', 'visibility', visibility)
+    }
+
+    map.triggerRepaint?.()
+}
+
+function setStationLabelTransition(map, duration = STATION_LABEL_VISIBILITY_FADE_MS) {
+    if (!map) return
+
+    if (map.getLayer('station-labels')) {
+        map.setPaintProperty('station-labels', 'text-opacity-transition', { duration, delay: 0 })
+    }
+
+    if (map.getLayer('entrance-labels')) {
+        map.setPaintProperty('entrance-labels', 'text-opacity-transition', { duration, delay: 0 })
     }
 }
 
@@ -60,7 +89,10 @@ export function useMapLifecycle({
     setPopupLines
 }) {
     const mapLoadedRef = useRef(false)
+    const loadingSettledRef = useRef(false)
     const showBuildingsRef = useRef(true)
+    const stationLabelLayerVisibleRef = useRef(true)
+    const stationLabelVisibilityTimerRef = useRef(null)
     const [allLines, setAllLines] = useState([])
     const [showBuildings, setShowBuildings] = useState(true)
     const [isLoading, setIsLoading] = useState(true)
@@ -69,9 +101,10 @@ export function useMapLifecycle({
     const [mapBearing, setMapBearing] = useState(0)
     const [stationNameOpacity, setStationNameOpacityState] = useState(() => {
         const stored = Number(localStorage.getItem(STATION_LABEL_OPACITY_STORAGE_KEY))
-        return Number.isFinite(stored) ? Math.max(0, Math.min(1, stored)) : 1
+        if (!Number.isFinite(stored)) return 1
+        const normalized = Math.max(0, Math.min(1, stored))
+        return normalized === 0 ? 1 : normalized
     })
-
     const { initializeLayers } = useMapLayers(mapRef, mrtData, () => {
         setAllLines(getAllLines(mrtData))
         initSimulation()
@@ -85,9 +118,12 @@ export function useMapLifecycle({
     })
 
     const initMapFeatures = useCallback(() => {
+        if (!mrtData) return
         initializeLayers()
         configureBuildingLayer(mapRef.current, showBuildingsRef.current)
+        setStationLabelTransition(mapRef.current)
         applyStationLabelOpacity(mapRef.current, stationNameOpacity)
+        applyStationLabelVisibility(mapRef.current, stationLabelLayerVisibleRef.current)
 
         const refs = setupInteractions()
         activeEntranceMarkerRef.current = refs?.activeEntranceMarkerRef?.current
@@ -100,6 +136,13 @@ export function useMapLifecycle({
 
         applyLineHighlighting(mapRef.current, hoveredLines, selectedLines, routeResultRef.current)
     }, [activeEntranceMarkerRef, hoveredLines, initializeLayers, mapRef, mrtData, routeResultRef, selectedLines, setupInteractions, stationNameOpacity])
+
+    const settleLoadingState = useCallback(() => {
+        if (loadingSettledRef.current) return
+        loadingSettledRef.current = true
+        setTimeout(() => setIsLoadingFading(true), 300)
+        setTimeout(() => setIsLoading(false), 900)
+    }, [])
 
     const toggleBuildings = useCallback(() => {
         setShowBuildings(prev => {
@@ -137,6 +180,33 @@ export function useMapLifecycle({
         applyStationLabelOpacity(mapRef.current, next)
     }, [mapRef])
 
+    const setStationLabelLayerVisibility = useCallback((visible) => {
+        if (stationLabelVisibilityTimerRef.current) {
+            clearTimeout(stationLabelVisibilityTimerRef.current)
+            stationLabelVisibilityTimerRef.current = null
+        }
+
+        stationLabelLayerVisibleRef.current = visible
+
+        if (visible) {
+            applyStationLabelVisibility(mapRef.current, true)
+            setStationLabelTransition(mapRef.current)
+            requestAnimationFrame(() => {
+                applyStationLabelOpacity(mapRef.current, stationNameOpacity)
+            })
+            return
+        }
+
+        setStationLabelTransition(mapRef.current)
+        applyStationLabelOpacity(mapRef.current, 0)
+        stationLabelVisibilityTimerRef.current = setTimeout(() => {
+            if (!stationLabelLayerVisibleRef.current) {
+                applyStationLabelVisibility(mapRef.current, false)
+            }
+            stationLabelVisibilityTimerRef.current = null
+        }, STATION_LABEL_VISIBILITY_FADE_MS)
+    }, [mapRef, stationNameOpacity])
+
     useEffect(() => {
         mapRef.current = new maplibregl.Map({
             container: mapContainer.current,
@@ -146,10 +216,11 @@ export function useMapLifecycle({
         })
 
         mapRef.current.on('load', () => {
-            initMapFeatures()
             mapLoadedRef.current = true
-            setTimeout(() => setIsLoadingFading(true), 300)
-            setTimeout(() => setIsLoading(false), 900)
+            if (mrtData) {
+                initMapFeatures()
+                settleLoadingState()
+            }
         })
 
         mapRef.current.on('pitch', () => {
@@ -162,11 +233,22 @@ export function useMapLifecycle({
         })
 
         return () => {
+            if (stationLabelVisibilityTimerRef.current) {
+                clearTimeout(stationLabelVisibilityTimerRef.current)
+            }
             cleanupSimulation()
             mapRef.current?.remove()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    useEffect(() => {
+        if (!mapLoadedRef.current || !mapRef.current || !mrtData) return
+        if (!mapRef.current.getSource('mrt-line')) {
+            initMapFeatures()
+        }
+        settleLoadingState()
+    }, [initMapFeatures, mapRef, mrtData, settleLoadingState])
 
     useMapThemeStyle({ theme, t, mapRef, mapLoadedRef, mapStyleUrl, initMapFeatures })
 
@@ -179,6 +261,7 @@ export function useMapLifecycle({
         mapBearing,
         stationNameOpacity,
         setStationNameOpacity,
+        setStationLabelLayerVisibility,
         toggleBuildings,
         handleToggle2D3D
     }

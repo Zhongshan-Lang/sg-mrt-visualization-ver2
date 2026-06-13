@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { useTheme } from '../../contexts/ThemeContext'
 import { registerStationInteractions, STATION_INTERACTION_LAYERS } from './stationInteractions'
@@ -7,24 +7,30 @@ import { registerLineInteractions } from './lineInteractions'
 export function useMapInteractions(mapRef, callbacks) {
     const { t } = useTheme()
     const tRef = useRef(t)
-    tRef.current = t
+    const mapClickHandlerRef = useRef(null)
 
-    const { closePanel, closeLinePanel } = callbacks
+    const popup = useMemo(() => new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 25
+    }), [])
+
+    const linePopup = useMemo(() => new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 12
+    }), [])
+
+    useEffect(() => {
+        tRef.current = t
+    }, [t])
+
+    useEffect(() => () => {
+        popup.remove()
+        linePopup.remove()
+    }, [linePopup, popup])
 
     const getTheme = () => tRef.current
-
-    const popupRef = useRef(null)
-    const linePopupRef = useRef(null)
-    if (!popupRef.current) {
-        popupRef.current = new maplibregl.Popup({
-            closeButton: false, closeOnClick: false, offset: 25
-        })
-    }
-    if (!linePopupRef.current) {
-        linePopupRef.current = new maplibregl.Popup({
-            closeButton: false, closeOnClick: false, offset: 12
-        })
-    }
 
     const setupInteractions = useCallback(() => {
         const map = mapRef.current
@@ -35,8 +41,10 @@ export function useMapInteractions(mapRef, callbacks) {
             map.off(event, 'mrt-line-layer')
         })
 
-        const popup = popupRef.current
-        const linePopup = linePopupRef.current
+        if (mapClickHandlerRef.current) {
+            map.off('click', mapClickHandlerRef.current)
+        }
+
         const popupActiveRef = { current: false }
         const activeEntranceMarkerRef = { current: null }
 
@@ -60,7 +68,7 @@ export function useMapInteractions(mapRef, callbacks) {
             callbacks
         })
 
-        map.on('click', (e) => {
+        const handleMapClick = (e) => {
             const stationFeatures = map.queryRenderedFeatures(e.point, { layers: STATION_INTERACTION_LAYERS })
             const lineFeatures = map.queryRenderedFeatures(e.point, { layers: ['mrt-line-layer'] })
 
@@ -68,13 +76,16 @@ export function useMapInteractions(mapRef, callbacks) {
                 popup.remove()
                 linePopup.remove()
                 popupActiveRef.current = false
-                closePanel()
-                closeLinePanel()
+                callbacks.closePanel()
+                callbacks.closeLinePanel()
             }
-        })
+        }
+
+        mapClickHandlerRef.current = handleMapClick
+        map.on('click', handleMapClick)
 
         return { activeEntranceMarkerRef }
-    }, [mapRef, callbacks, closePanel, closeLinePanel])
+    }, [callbacks, linePopup, mapRef, popup])
 
     return { setupInteractions }
 }

@@ -3,6 +3,7 @@ import { flyToLine } from '../../utils/stationUtils'
 import { useTheme } from '../../contexts/ThemeContext'
 
 export default function LineBar({
+    chromeVisible = true,
     allLines,
     mapRef,
     setSelectedStation,
@@ -59,7 +60,14 @@ export default function LineBar({
     return (
         <div style={{
             position: 'absolute', left: 8, bottom: 20, zIndex: 15,
-            display: 'flex', alignItems: 'center', gap: '6px'
+            display: 'flex', alignItems: 'center', gap: '6px',
+            transform: chromeVisible ? 'translateX(0px)' : 'translateX(-18px)',
+            opacity: chromeVisible ? 1 : 0,
+            filter: chromeVisible ? 'blur(0px)' : 'blur(8px)',
+            pointerEvents: chromeVisible ? 'auto' : 'none',
+            visibility: chromeVisible ? 'visible' : 'hidden',
+            transition: 'opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s ease, visibility 0.28s step-end',
+            willChange: 'opacity, transform, filter'
         }}>
             {/* 缩放 + 模拟控制按钮组 */}
             <div style={{
@@ -147,7 +155,7 @@ export default function LineBar({
                 {allLines.map((line, idx) => (
                     <div key={idx} onClick={() => {
                         setSelectedStation(null); setIsClosing(false)
-                        flyToLine(line.code, mapRef, setSelectedLine, setSelectedLines, setIsEntering)
+                        flyToLine(line.code, mapRef, setSelectedLine, setSelectedLines, setIsEntering, line.feature)
                     }} style={{
                         background: line.color, padding: '6px 14px',
                         borderRadius: '999px', fontSize: '12px', fontWeight: 'bold',

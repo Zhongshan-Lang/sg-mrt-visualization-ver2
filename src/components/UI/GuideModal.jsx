@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
 
 const guideCopy = {
@@ -141,11 +141,11 @@ export default function GuideModal({ onClose }) {
     const closeTimerRef = useRef(null)
     const copy = guideCopy[language]
 
-    const requestClose = () => {
+    const requestClose = useCallback(() => {
         if (isClosing) return
         setIsClosing(true)
         closeTimerRef.current = setTimeout(onClose, 220)
-    }
+    }, [isClosing, onClose])
 
     useEffect(() => {
         const onKeyDown = (event) => {
@@ -153,7 +153,7 @@ export default function GuideModal({ onClose }) {
         }
         window.addEventListener('keydown', onKeyDown)
         return () => window.removeEventListener('keydown', onKeyDown)
-    }, [isClosing])
+    }, [requestClose])
 
     useEffect(() => () => {
         if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
