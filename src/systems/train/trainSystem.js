@@ -119,7 +119,12 @@ export class TrainSystem {
         const trainIndex = this.trains.length
         const { el, bodyEl, syncMarkerSize } = createTrainMarkerDom({ color, trainIndex })
 
-        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        const marker = new maplibregl.Marker({
+            element: el,
+            anchor: 'center',
+            rotationAlignment: 'map',
+            pitchAlignment: 'map'
+        })
 
         const syncHitArea = (train) => {
             if (!train?.marker) return
@@ -178,7 +183,7 @@ export class TrainSystem {
             syncHitArea: () => syncHitArea(train)
         }
         this.trains.push(train)
-        syncHitArea(train)
+        this.syncTrainVisual(train)
     }
 
     updateTrain(train, dt) {
@@ -245,6 +250,12 @@ export class TrainSystem {
 
     _computeHeading(train) {
         return computeTrainHeading(train, this.map.getBearing())
+    }
+
+    syncTrainVisual(train) {
+        if (!train?.marker) return
+        train.marker.setRotation(this._computeHeading(train))
+        train.syncHitArea?.()
     }
 
     _startTracking(train, el) {
