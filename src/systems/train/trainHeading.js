@@ -19,8 +19,7 @@ export function computeTrainHeading(train, fallbackBearing) {
         const start = turf.along(line, d1).geometry.coordinates
         const end = turf.along(line, d2).geometry.coordinates
 
-        const heading = turf.bearing(turf.point(start), turf.point(end))
-        return train.direction === -1 ? (heading + 180) % 360 : heading
+        return turf.bearing(turf.point(start), turf.point(end))
     } catch {
         return fallbackBearing
     }
