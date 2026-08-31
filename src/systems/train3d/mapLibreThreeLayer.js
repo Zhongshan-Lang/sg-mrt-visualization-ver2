@@ -8,7 +8,7 @@ export function getProjectionMatrix(renderData) {
         return renderData
     }
 
-    const matrix = renderData?.modelViewProjectionMatrix ?? renderData?.projectionMatrix
+    const matrix = renderData?.defaultProjectionData?.mainMatrix ?? renderData?.modelViewProjectionMatrix ?? renderData?.projectionMatrix
     if (!matrix) {
         throw new Error('MapLibre custom layer did not provide a projection matrix')
     }
