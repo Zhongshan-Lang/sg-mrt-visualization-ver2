@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { MapLibreThreeLayer } from './mapLibreThreeLayer'
-import { createTrainCarMaterials, createTrainSetGeometry } from './trainCarGeometry'
+import { createTrainCarGeometry, createTrainCarMaterials } from './trainCarGeometry'
 
 const TRAIN_3D_LAYER_ID = 'mrt-train-3d-prototype'
 const TRAIN_GROUND_CLEARANCE_METERS = 0.28
@@ -19,12 +19,10 @@ export class Train3dPrototype {
         })
         this.layer.add(map)
 
-        this.geometry = createTrainSetGeometry()
+        this.geometry = createTrainCarGeometry()
         this.materials = createTrainCarMaterials(train.visualColor)
         this.mesh = new THREE.Mesh(this.geometry, this.materials)
         this.mesh.frustumCulled = false
-        train.el.style.opacity = '0'
-        this.hiddenMarkerElement = train.el
         this.layer.scene.add(this.mesh)
         this.sync(train)
     }
@@ -50,8 +48,6 @@ export class Train3dPrototype {
         if (this.map?.getLayer(TRAIN_3D_LAYER_ID)) {
             this.map.removeLayer(TRAIN_3D_LAYER_ID)
         }
-        if (this.hiddenMarkerElement) this.hiddenMarkerElement.style.opacity = ''
-        this.hiddenMarkerElement = null
         this.mesh = null
         this.map = null
     }
