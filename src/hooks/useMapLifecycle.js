@@ -13,6 +13,16 @@ const BASE_STATION_LABEL_OPACITY = ['interpolate', ['linear'], ['zoom'], 8, 0, 1
 const BASE_ENTRANCE_LABEL_OPACITY = 0.7
 const STATION_LABEL_VISIBILITY_FADE_MS = 220
 
+export function buildStationLabelOpacityExpression(opacity) {
+    const expression = [...BASE_STATION_LABEL_OPACITY]
+
+    for (let index = 4; index < expression.length; index += 2) {
+        expression[index] *= opacity
+    }
+
+    return expression
+}
+
 function applyStationLabelOpacity(map, opacity) {
     if (!map) return
 
@@ -22,7 +32,7 @@ function applyStationLabelOpacity(map, opacity) {
         map.setPaintProperty(
             'station-labels',
             'text-opacity',
-            ['*', BASE_STATION_LABEL_OPACITY, next]
+            buildStationLabelOpacityExpression(next)
         )
     }
 
