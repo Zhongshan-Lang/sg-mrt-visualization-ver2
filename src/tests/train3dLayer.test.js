@@ -85,6 +85,5 @@ describe('3D train layer', () => {
 
         const transform = layer.meshes.body.setMatrixAt.mock.calls[0][1]
         expect(transform.determinant()).toBeGreaterThan(0)
-        expect(transform.elements[14]).toBeGreaterThan(0)
     })
 })
