@@ -15,6 +15,12 @@ export function getProjectionMatrix(renderData) {
     return matrix
 }
 
+export function getTrainMeshTransform(meterScale, heading) {
+    return {
+        scale: [meterScale, meterScale, meterScale],
+        rotationZ: Math.PI + THREE.MathUtils.degToRad(heading),
+    }
+}
 export function getLocalMercatorPosition(origin, coordinate) {
     return new THREE.Vector3(
         coordinate.x - origin.x,
@@ -77,10 +83,13 @@ export class MapLibreThreeLayer {
 
     setCarPose(mesh, { lngLat, altitude = 0, heading = 0 }) {
         const coordinate = maplibregl.MercatorCoordinate.fromLngLat(lngLat, altitude)
-        const meterScale = coordinate.meterInMercatorCoordinateUnits()
+        const transform = getTrainMeshTransform(
+            coordinate.meterInMercatorCoordinateUnits(),
+            heading
+        )
         mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
-        mesh.scale.set(meterScale, -meterScale, meterScale)
-        mesh.rotation.set(0, 0, -THREE.MathUtils.degToRad(heading))
+        mesh.scale.set(...transform.scale)
+        mesh.rotation.set(0, 0, transform.rotationZ)
     }
 
     destroy() {
