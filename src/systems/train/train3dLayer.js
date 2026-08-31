@@ -75,7 +75,6 @@ export class Train3DLayer {
         this._rotation = new THREE.Quaternion()
         this._matrix = new THREE.Matrix4()
         this._color = new THREE.Color()
-        this._roofColor = new THREE.Color()
     }
 
     add(beforeId) {
@@ -154,7 +153,7 @@ export class Train3DLayer {
             const heading = train.heading || 0
 
             this._position.set(coordinate.x, coordinate.y, coordinate.z)
-            this._scale.set(scale, -scale, scale)
+            this._scale.set(scale, scale, scale)
             this._rotation.setFromAxisAngle(new THREE.Vector3(0, 0, 1), trainHeadingToModelYaw(heading || 0))
             this._matrix.compose(this._position, this._rotation, this._scale)
 
@@ -166,8 +165,7 @@ export class Train3DLayer {
 
             this._color.set(train.visualColor || '#ffffff')
             this.meshes.body.setColorAt(index, this._color)
-            this._roofColor.copy(this._color).lerp(new THREE.Color('#ffffff'), 0.24)
-            this.meshes.roof.setColorAt(index, this._roofColor)
+            this.meshes.roof.setColorAt(index, this._color.clone().lerp(new THREE.Color('#ffffff'), 0.24))
         }
 
         Object.values(this.meshes).forEach(mesh => {
@@ -177,13 +175,10 @@ export class Train3DLayer {
         this.group.visible = this.visible && count > 0
     }
 
-    render(gl, { defaultProjectionData }) {
+    render(gl, { modelViewProjectionMatrix }) {
         if (!this.renderer || !this.camera || !this.scene || !this.visible) return
 
-        const matrix = defaultProjectionData?.mainMatrix
-        if (!matrix) return
-
-        this.camera.projectionMatrix.fromArray(matrix)
+        this.camera.projectionMatrix.fromArray(modelViewProjectionMatrix)
         this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert()
         this.renderer.resetState()
         this.renderer.render(this.scene, this.camera)

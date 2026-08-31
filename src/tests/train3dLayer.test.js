@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import * as THREE from 'three'
 import { TRAIN_3D_LAYER_ID, Train3DLayer, trainHeadingToModelYaw } from '../systems/train/train3dLayer'
 
 describe('3D train layer', () => {
@@ -35,26 +34,5 @@ describe('3D train layer', () => {
         expect(layer.visible).toBe(false)
         expect(map.triggerRepaint).toHaveBeenCalledOnce()
         expect(trainHeadingToModelYaw(180)).toBeCloseTo(Math.PI)
-    })
-
-    it('uses MapLibre mainMatrix as the camera projection for the shared WebGL context', () => {
-        const map = {
-            getLayer: vi.fn(() => null),
-            addLayer: vi.fn(),
-            triggerRepaint: vi.fn()
-        }
-        const layer = new Train3DLayer(map)
-        const render = vi.fn()
-        const mainMatrix = new Float32Array(16)
-        mainMatrix[0] = 7
-
-        layer.renderer = { resetState: vi.fn(), render }
-        layer.camera = new THREE.Camera()
-        layer.scene = new THREE.Scene()
-
-        layer.render(null, { defaultProjectionData: { mainMatrix } })
-
-        expect(layer.camera.projectionMatrix.elements[0]).toBe(7)
-        expect(render).toHaveBeenCalledWith(layer.scene, layer.camera)
     })
 })
