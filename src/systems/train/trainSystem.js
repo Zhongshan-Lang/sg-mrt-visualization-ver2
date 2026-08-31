@@ -217,6 +217,10 @@ export class TrainSystem {
 
     setVisible(show) {
         this._visible = show
+        if (!show && this._hoverPopup) {
+            this._hoverPopup.remove()
+            this._hoverPopup = null
+        }
         this.trains.forEach(t => {
             if (t.el) t.el.style.display = show ? '' : 'none'
         })

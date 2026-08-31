@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const setStationLabelLayerVisibility = vi.fn()
+const setNetworkVisibility = vi.fn()
 const topBarMock = vi.fn(({
     chromeVisible,
     navStart,
@@ -81,6 +82,7 @@ vi.mock('../hooks/useSimulation', () => ({
         setSelectedTrain: vi.fn(),
         toggleSimulation: vi.fn(),
         toggleTrainVisibility: vi.fn(),
+        setNetworkVisibility,
         getArrivals: vi.fn(() => []),
         cycleSpeed: vi.fn(),
         initSimulation: vi.fn(),
@@ -218,6 +220,8 @@ vi.mock('../hooks/useMapLifecycle', () => ({
     useMapLifecycle: () => ({
         allLines: [],
         showBuildings: true,
+        showNetwork: true,
+        toggleNetwork: vi.fn(),
         toggleBuildings: vi.fn(),
         isMap2D: false,
         mapBearing: 0,
@@ -280,6 +284,7 @@ describe('UI chrome smoke', () => {
 
         await waitFor(() => {
             expect(setStationLabelLayerVisibility).toHaveBeenCalledWith(true)
+            expect(setNetworkVisibility).toHaveBeenCalledWith(true)
         })
 
         expect(screen.getByTestId('topbar').getAttribute('data-visible')).toBe('true')

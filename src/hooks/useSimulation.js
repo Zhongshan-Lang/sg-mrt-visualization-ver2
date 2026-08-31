@@ -6,6 +6,8 @@ const SPEED_OPTIONS = [0.5, 1, 2, 4]
 export function useSimulation(mapRef, mrtData) {
     const trainSystemRef = useRef(null)
     const runningRef = useRef(false)
+    const showTrainsRef = useRef(false)
+    const networkVisibleRef = useRef(true)
     const [isSimulationRunning, setIsSimulationRunning] = useState(false)
     const [showTrains, setShowTrains] = useState(false)
     const [simSpeed, setSimSpeed] = useState(1)
@@ -27,8 +29,9 @@ export function useSimulation(mapRef, mrtData) {
         trainSystemRef.current.start()
         runningRef.current = true
         setIsSimulationRunning(true)
+        showTrainsRef.current = true
         setShowTrains(true)
-        trainSystemRef.current.setVisible(true)
+        trainSystemRef.current.setVisible(networkVisibleRef.current)
     }, [mapRef, mrtData])
 
     const toggleSimulation = useCallback(() => {
@@ -44,8 +47,9 @@ export function useSimulation(mapRef, mrtData) {
             trainSystemRef.current.start()
             runningRef.current = true
             setIsSimulationRunning(true)
+            showTrainsRef.current = true
             setShowTrains(true)
-            trainSystemRef.current.setVisible(true)
+            trainSystemRef.current.setVisible(networkVisibleRef.current)
         }
     }, [mrtData, mapRef])
 
@@ -61,9 +65,17 @@ export function useSimulation(mapRef, mrtData) {
     const toggleTrainVisibility = useCallback(() => {
         setShowTrains(prev => {
             const next = !prev
-            if (trainSystemRef.current) trainSystemRef.current.setVisible(next)
+            showTrainsRef.current = next
+            if (trainSystemRef.current) trainSystemRef.current.setVisible(next && networkVisibleRef.current)
             return next
         })
+    }, [])
+
+    const setNetworkVisibility = useCallback((visible) => {
+        networkVisibleRef.current = visible
+        if (trainSystemRef.current) {
+            trainSystemRef.current.setVisible(visible && showTrainsRef.current)
+        }
     }, [])
 
     const cleanupSimulation = useCallback(() => {
@@ -86,6 +98,7 @@ export function useSimulation(mapRef, mrtData) {
         setSelectedTrain,
         toggleSimulation,
         toggleTrainVisibility,
+        setNetworkVisibility,
         getArrivals,
         cycleSpeed,
         startSimulation,

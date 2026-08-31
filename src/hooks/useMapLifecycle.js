@@ -4,7 +4,7 @@ import { getAllLines } from '../utils/stationUtils'
 import { useMapLayers } from '../components/Map/MapLayers'
 import { useMapInteractions } from '../components/Map/MapInteractions'
 import { loadRouteUtils } from '../utils/routeModule'
-import { configureBuildingLayer, findBuildingLayer } from '../components/Map/mapLayerOrdering'
+import { configureBuildingLayer, findBuildingLayer, setMrtNetworkLayerVisibility } from '../components/Map/mapLayerOrdering'
 import { applyLineHighlighting, useLineHighlighting } from './useLineHighlighting'
 import { useMapThemeStyle } from './useMapThemeStyle'
 
@@ -91,10 +91,12 @@ export function useMapLifecycle({
     const mapLoadedRef = useRef(false)
     const loadingSettledRef = useRef(false)
     const showBuildingsRef = useRef(true)
+    const showNetworkRef = useRef(true)
     const stationLabelLayerVisibleRef = useRef(true)
     const stationLabelVisibilityTimerRef = useRef(null)
     const [allLines, setAllLines] = useState([])
     const [showBuildings, setShowBuildings] = useState(true)
+    const [showNetwork, setShowNetwork] = useState(true)
     const [isLoading, setIsLoading] = useState(true)
     const [isLoadingFading, setIsLoadingFading] = useState(false)
     const [isMap2D, setIsMap2D] = useState(false)
@@ -121,6 +123,7 @@ export function useMapLifecycle({
         if (!mrtData) return
         initializeLayers()
         configureBuildingLayer(mapRef.current, showBuildingsRef.current)
+        setMrtNetworkLayerVisibility(mapRef.current, showNetworkRef.current)
         setStationLabelTransition(mapRef.current)
         applyStationLabelOpacity(mapRef.current, stationNameOpacity)
         applyStationLabelVisibility(mapRef.current, stationLabelLayerVisibleRef.current)
@@ -157,6 +160,15 @@ export function useMapLifecycle({
                 )
             }
             return newVal
+        })
+    }, [mapRef])
+
+    const toggleNetwork = useCallback(() => {
+        setShowNetwork(prev => {
+            const next = !prev
+            showNetworkRef.current = next
+            setMrtNetworkLayerVisibility(mapRef.current, next)
+            return next
         })
     }, [mapRef])
 
@@ -255,6 +267,7 @@ export function useMapLifecycle({
     return {
         allLines,
         showBuildings,
+        showNetwork,
         isLoading,
         isLoadingFading,
         isMap2D,
@@ -263,6 +276,7 @@ export function useMapLifecycle({
         setStationNameOpacity,
         setStationLabelLayerVisibility,
         toggleBuildings,
+        toggleNetwork,
         handleToggle2D3D
     }
 }

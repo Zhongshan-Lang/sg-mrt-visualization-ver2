@@ -18,6 +18,8 @@ function Compass({ bearing, color }) {
 export default function Toolbar({
     chromeVisible = true,
     mapRef,
+    showNetwork,
+    onToggleNetwork,
     showBuildings,
     onToggleBuildings,
     theme,
@@ -29,6 +31,7 @@ export default function Toolbar({
 }) {
     const { t } = useTheme()
     const [resetHovered, setResetHovered] = useState(false)
+    const [networkHovered, setNetworkHovered] = useState(false)
     const [buildingHovered, setBuildingHovered] = useState(false)
     const [themeHovered, setThemeHovered] = useState(false)
     const [view2dHovered, setView2dHovered] = useState(false)
@@ -58,6 +61,7 @@ export default function Toolbar({
     }
 
     const buildingIcon = String.fromCodePoint(0x1F3E2)
+    const networkIcon = String.fromCodePoint(0x1F687)
     const themeIcon = theme === 'light'
         ? String.fromCodePoint(0x1F319)
         : String.fromCodePoint(0x2600, 0xFE0F)
@@ -112,6 +116,24 @@ export default function Toolbar({
                 <Compass bearing={bearing} color={t.textPrimary} />
             </div>
 
+            <div
+                onClick={onToggleNetwork}
+                title={showNetwork ? 'Hide MRT Network · 隐藏线路网络' : 'Show MRT Network · 显示线路网络'}
+                onMouseEnter={() => setNetworkHovered(true)}
+                onMouseLeave={() => setNetworkHovered(false)}
+                style={{
+                    ...btnBase,
+                    background: showNetwork
+                        ? (networkHovered ? t.sideChromeActiveHoverBg : t.buildingActiveBg)
+                        : (networkHovered ? t.sideChromeHoverBg : t.toolbarBg),
+                    border: showNetwork
+                        ? `1px solid ${networkHovered ? t.sideChromeHoverBorder : t.buildingActiveBorder}`
+                        : `1px solid ${networkHovered ? t.sideChromeHoverBorder : t.borderToolbar}`,
+                    fontSize: '16px'
+                }}
+            >
+                {networkIcon}
+            </div>
             <div
                 onClick={onToggleBuildings}
                 title={showBuildings ? 'Hide 3D Buildings' : 'Show 3D Buildings'}

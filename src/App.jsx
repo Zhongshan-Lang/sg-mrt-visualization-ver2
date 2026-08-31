@@ -54,6 +54,7 @@ function App() {
     setSelectedTrain,
     toggleSimulation,
     toggleTrainVisibility,
+    setNetworkVisibility,
     getArrivals,
     cycleSpeed,
     initSimulation,
@@ -130,8 +131,12 @@ function App() {
   useCloseOnEscape(panel.closePanel, panel.closeLinePanel)
 
   useEffect(() => {
-    setStationLabelLayerVisibility(showDesktopChrome)
-  }, [setStationLabelLayerVisibility, showDesktopChrome])
+    setStationLabelLayerVisibility(showDesktopChrome && map.showNetwork)
+  }, [map.showNetwork, setStationLabelLayerVisibility, showDesktopChrome])
+
+  useEffect(() => {
+    setNetworkVisibility(map.showNetwork)
+  }, [map.showNetwork, setNetworkVisibility])
 
   const handleDesktopChromeToggle = () => {
     setShowDesktopChrome(prev => !prev)
@@ -198,6 +203,8 @@ function App() {
       <Toolbar
         chromeVisible={showDesktopChrome}
         mapRef={mapRef}
+        showNetwork={map.showNetwork}
+        onToggleNetwork={map.toggleNetwork}
         showBuildings={map.showBuildings}
         onToggleBuildings={map.toggleBuildings}
         theme={theme}

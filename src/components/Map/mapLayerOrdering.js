@@ -1,9 +1,11 @@
-const MRT_LAYER_IDS = new Set([
+export const MRT_NETWORK_LAYER_IDS = [
     'station-interior', 'station-interior-outline', 'mrt-line-layer', 'mrt-line-hover', 'mrt-line-glow',
     'route-highlight-layer', 'route-flow-layer', 'route-glow',
     'station-glow', 'station-core', 'station-glow-local', 'station-core-local', 'station-labels',
     'station-entrance', 'entrance-labels'
-])
+]
+
+const MRT_LAYER_IDS = new Set(MRT_NETWORK_LAYER_IDS)
 
 const STATION_LAYER_IDS = [
     'station-glow', 'station-core', 'station-glow-local', 'station-core-local', 'station-labels',
@@ -63,4 +65,16 @@ export function configureBuildingLayer(map, showBuildings) {
     map.moveLayer(buildingLayerId)
     moveLabelsAboveBuilding(map)
     moveStationLayersToTop(map)
+}
+
+export function setMrtNetworkLayerVisibility(map, visible) {
+    if (!map) return
+
+    const visibility = visible ? 'visible' : 'none'
+    MRT_NETWORK_LAYER_IDS.forEach(id => {
+        if (map.getLayer(id)) {
+            map.setLayoutProperty(id, 'visibility', visibility)
+        }
+    })
+    map.triggerRepaint?.()
 }
