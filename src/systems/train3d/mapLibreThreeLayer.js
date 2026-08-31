@@ -3,18 +3,6 @@ import * as THREE from 'three'
 
 const SQRT3 = Math.sqrt(3)
 
-export function getMainProjectionMatrix(renderData) {
-    if (Array.isArray(renderData) || ArrayBuffer.isView(renderData)) {
-        return renderData
-    }
-
-    const matrix = renderData?.defaultProjectionData?.mainMatrix ?? renderData?.mainMatrix
-    if (!matrix) {
-        throw new Error('MapLibre custom layer did not provide a projection matrix')
-    }
-    return matrix
-}
-
 export function getLocalMercatorPosition(origin, coordinate) {
     return new THREE.Vector3(
         coordinate.x - origin.x,
@@ -79,7 +67,7 @@ export class MapLibreThreeLayer {
         this.camera.projectionMatrix.makePerspective(-halfWidth, halfWidth, halfHeight, -halfHeight, near, far)
         this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert()
 
-        const mapMatrix = new THREE.Matrix4().fromArray(getMainProjectionMatrix(matrix))
+        const mapMatrix = new THREE.Matrix4().fromArray(matrix)
         const localTransform = new THREE.Matrix4()
             .makeTranslation(this.modelOrigin.x, this.modelOrigin.y, 0)
             .scale(new THREE.Vector3(1, -1, 1))
