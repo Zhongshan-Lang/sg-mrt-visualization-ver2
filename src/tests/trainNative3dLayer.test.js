@@ -12,7 +12,7 @@ describe('native 3D train features', () => {
         features.forEach(feature => {
             const ring = feature.geometry.coordinates[0]
             expect(ring[0]).toEqual(ring.at(-1))
-            expect(feature.properties).toMatchObject({ color: '#009645', height: 4.6, base: 0.28 })
+            expect(feature.properties).toMatchObject({ color: '#009645', height: 6.5, base: 0.28 })
         })
     })
 })

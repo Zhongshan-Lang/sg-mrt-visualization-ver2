@@ -2,9 +2,9 @@ import * as turf from '@turf/turf'
 
 const SOURCE_ID = 'mrt-train-3d-source'
 const LAYER_ID = 'mrt-train-3d-body'
-const CAR_LENGTH_METERS = 46
-const CAR_WIDTH_METERS = 4.2
-const TRAIN_HEIGHT_METERS = 4.6
+const CAR_LENGTH_METERS = 68
+const CAR_WIDTH_METERS = 6
+const TRAIN_HEIGHT_METERS = 6.5
 const TRAIN_BASE_METERS = 0.28
 
 function findBuildingBeforeId(map) {
