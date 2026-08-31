@@ -1,4 +1,4 @@
-﻿import maplibregl from 'maplibre-gl'
+import maplibregl from 'maplibre-gl'
 import * as turf from '@turf/turf'
 
 import { computeTrainHeading } from './trainHeading'
@@ -12,6 +12,7 @@ import { advanceTrainTowardStation, ensureCurrentStationIndex, getTargetStationI
 import { buildTrainPopupHTML } from './trainPopup'
 import { createTrainSelectionController } from './trainSelectionController'
 import { LRT_LOOP_LINES, LRT_LINES } from '../../routing/specialLineRules'
+import { NativeTrain3dLayer } from './trainNative3dLayer'
 
 // 娣诲姞棰滆壊鏄犲皠
 const routeColors = {
@@ -65,6 +66,7 @@ export class TrainSystem {
         this.stationCoords = network.stationCoords
 
         this.createInitialTrains()
+        this.nativeTrainLayer = new NativeTrain3dLayer(this.map, this.trains, train => this._computeHeading(train))
 
         this.lastTime = performance.now()
     }
@@ -224,6 +226,7 @@ export class TrainSystem {
         this.trains.forEach(t => {
             if (t.el) t.el.style.display = show ? '' : 'none'
         })
+        this.nativeTrainLayer?.setVisible(show)
     }
 
     getArrivals(stationCode) {
@@ -280,6 +283,7 @@ export class TrainSystem {
             this.trackingCamera.update(now)
         }
 
+        this.nativeTrainLayer?.sync(this.trains)
         this.map.triggerRepaint()
 
         this.animationFrame = requestAnimationFrame(() => this.update())
@@ -292,6 +296,12 @@ export class TrainSystem {
 
     stop() {
         cancelAnimationFrame(this.animationFrame)
+    }
+
+    destroy() {
+        this.stop()
+        this.nativeTrainLayer?.destroy()
+        this.nativeTrainLayer = null
     }
 }
 
