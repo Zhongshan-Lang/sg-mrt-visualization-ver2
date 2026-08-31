@@ -1,4 +1,4 @@
-﻿import maplibregl from 'maplibre-gl'
+import maplibregl from 'maplibre-gl'
 import * as turf from '@turf/turf'
 
 import { computeTrainHeading } from './trainHeading'
@@ -12,6 +12,8 @@ import { advanceTrainTowardStation, ensureCurrentStationIndex, getTargetStationI
 import { buildTrainPopupHTML } from './trainPopup'
 import { createTrainSelectionController } from './trainSelectionController'
 import { LRT_LOOP_LINES, LRT_LINES } from '../../routing/specialLineRules'
+import { Train3dPrototype } from '../train3d/train3dPrototype'
+import { isTrain3dPrototypeEnabled } from '../train3d/train3dMode'
 
 // 娣诲姞棰滆壊鏄犲皠
 const routeColors = {
@@ -65,6 +67,9 @@ export class TrainSystem {
         this.stationCoords = network.stationCoords
 
         this.createInitialTrains()
+        this.train3dPrototype = isTrain3dPrototypeEnabled()
+            ? new Train3dPrototype(this.map, this.trains[0])
+            : null
 
         this.lastTime = performance.now()
     }
@@ -224,6 +229,7 @@ export class TrainSystem {
         this.trains.forEach(t => {
             if (t.el) t.el.style.display = show ? '' : 'none'
         })
+        this.train3dPrototype?.setVisible(show)
     }
 
     getArrivals(stationCode) {
@@ -280,6 +286,12 @@ export class TrainSystem {
             this.trackingCamera.update(now)
         }
 
+        const prototypeTrain = this.trains[0]
+        if (prototypeTrain) {
+            prototypeTrain.heading = this._computeHeading(prototypeTrain)
+            this.train3dPrototype?.sync(prototypeTrain)
+        }
+
         this.map.triggerRepaint()
 
         this.animationFrame = requestAnimationFrame(() => this.update())
@@ -292,6 +304,12 @@ export class TrainSystem {
 
     stop() {
         cancelAnimationFrame(this.animationFrame)
+    }
+
+    destroy() {
+        this.stop()
+        this.train3dPrototype?.destroy()
+        this.train3dPrototype = null
     }
 }
 

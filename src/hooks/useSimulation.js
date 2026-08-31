@@ -80,7 +80,7 @@ export function useSimulation(mapRef, mrtData) {
 
     const cleanupSimulation = useCallback(() => {
         if (trainSystemRef.current) {
-            trainSystemRef.current.stop()
+            trainSystemRef.current.destroy()
             trainSystemRef.current = null
         }
         runningRef.current = false
