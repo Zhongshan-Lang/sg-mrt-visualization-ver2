@@ -2,11 +2,9 @@ import * as turf from '@turf/turf'
 
 const SOURCE_ID = 'mrt-train-3d-source'
 const LAYER_ID = 'mrt-train-3d-body'
-const CAR_COUNT = 4
-const CAR_LENGTH_METERS = 22
-const CAR_WIDTH_METERS = 3.1
-const CAR_GAP_METERS = 0.8
-const TRAIN_HEIGHT_METERS = 3.6
+const CAR_LENGTH_METERS = 46
+const CAR_WIDTH_METERS = 4.2
+const TRAIN_HEIGHT_METERS = 4.6
 const TRAIN_BASE_METERS = 0.28
 
 function findBuildingBeforeId(map) {
@@ -34,17 +32,12 @@ export function createNativeTrainFeatures(trains, getHeading) {
 
         const center = train.marker.getLngLat().toArray()
         const heading = getHeading(train)
-        const spacing = CAR_LENGTH_METERS + CAR_GAP_METERS
-        const startOffset = -((CAR_COUNT - 1) * spacing) / 2
 
-        return Array.from({ length: CAR_COUNT }, (_, index) => {
-            const carCenter = offsetCoordinate(center, startOffset + index * spacing, heading)
-            return turf.polygon([createCarPolygon(carCenter, heading)], {
-                color: train.visualColor,
-                height: TRAIN_HEIGHT_METERS,
-                base: TRAIN_BASE_METERS,
-            })
-        })
+        return [turf.polygon([createCarPolygon(center, heading)], {
+            color: train.visualColor,
+            height: TRAIN_HEIGHT_METERS,
+            base: TRAIN_BASE_METERS,
+        })]
     })
 }
 
