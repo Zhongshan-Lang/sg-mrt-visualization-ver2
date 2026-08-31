@@ -7,6 +7,7 @@ const MAX_TRAIN_INSTANCES = 192
 const TRAIN_WIDTH_METERS = 3.15
 const TRAIN_LENGTH_METERS = 32
 const TRAIN_HEIGHT_METERS = 3.45
+const TRAIN_GROUND_CLEARANCE_METERS = 0.35
 
 function createInstancedMesh(geometry, material) {
     const mesh = new THREE.InstancedMesh(geometry, material, MAX_TRAIN_INSTANCES)
@@ -30,26 +31,41 @@ function createTrainGeometry() {
     return { body, roof, leftWindows, rightWindows, frontWindow }
 }
 
+function createTrainColorMaterial() {
+    return new THREE.ShaderMaterial({
+        vertexShader: `
+            attribute vec3 instanceColor;
+            varying vec3 vInstanceColor;
+
+            void main() {
+                vInstanceColor = instanceColor;
+                gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vInstanceColor;
+
+            void main() {
+                gl_FragColor = vec4(pow(vInstanceColor, vec3(1.0 / 2.2)), 1.0);
+            }
+        `,
+        depthTest: true,
+        depthWrite: true,
+        toneMapped: false
+    })
+}
+
 function createTrainMaterials() {
-    const body = new THREE.MeshStandardMaterial({
-        color: '#ffffff',
-        vertexColors: true,
-        metalness: 0.22,
-        roughness: 0.52
-    })
-    const roof = new THREE.MeshStandardMaterial({
-        color: '#ffffff',
-        vertexColors: true,
-        metalness: 0.18,
-        roughness: 0.4
-    })
-    const glass = new THREE.MeshStandardMaterial({
+    const glass = new THREE.MeshBasicMaterial({
         color: '#102235',
-        metalness: 0.5,
-        roughness: 0.2
+        toneMapped: false
     })
 
-    return { body, roof, glass }
+    return {
+        body: createTrainColorMaterial(),
+        roof: createTrainColorMaterial(),
+        glass
+    }
 }
 
 export function trainHeadingToModelYaw(heading) {
@@ -100,11 +116,6 @@ export class Train3DLayer {
         }
         Object.values(this.meshes).forEach(mesh => this.group.add(mesh))
 
-        this.scene.add(new THREE.HemisphereLight('#f4f9ff', '#263342', 2.4))
-        const keyLight = new THREE.DirectionalLight('#ffffff', 2.1)
-        keyLight.position.set(-1, -1, 2)
-        this.scene.add(keyLight)
-
         this.renderer = new THREE.WebGLRenderer({
             canvas: map.getCanvas(),
             context: gl,
@@ -149,7 +160,7 @@ export class Train3DLayer {
             const lngLat = train?.marker?.getLngLat?.()
             if (!lngLat) continue
 
-            const coordinate = maplibregl.MercatorCoordinate.fromLngLat(lngLat, 0)
+            const coordinate = maplibregl.MercatorCoordinate.fromLngLat(lngLat, TRAIN_GROUND_CLEARANCE_METERS)
             const scale = coordinate.meterInMercatorCoordinateUnits() * (train.isTracked ? 1.12 : 1)
             const heading = train.heading || 0
 
