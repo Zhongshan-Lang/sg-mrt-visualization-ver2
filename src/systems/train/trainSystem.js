@@ -11,6 +11,8 @@ import { createTrainMarkerDom } from './trainMarkerDom'
 import { advanceTrainTowardStation, ensureCurrentStationIndex, getTargetStationIndex, normalizeLoopState, updateWaitTimer } from './trainMotion'
 import { buildTrainPopupHTML } from './trainPopup'
 import { createTrainSelectionController } from './trainSelectionController'
+import { Train3DLayer } from './train3dLayer'
+import { findBuildingLayer } from '../../components/Map/mapLayerOrdering'
 import { LRT_LOOP_LINES, LRT_LINES } from '../../routing/specialLineRules'
 
 // 娣诲姞棰滆壊鏄犲皠
@@ -64,7 +66,13 @@ export class TrainSystem {
         this.routeStations = network.routeStations
         this.stationCoords = network.stationCoords
 
+        this.train3dLayer = new Train3DLayer(map)
+        this._handleStyleLoad = () => this._ensureTrain3dLayer()
+        this.map.on('style.load', this._handleStyleLoad)
+        this._ensureTrain3dLayer()
+
         this.createInitialTrains()
+        this._syncTrain3d()
 
         this.lastTime = performance.now()
     }
@@ -117,7 +125,7 @@ export class TrainSystem {
         const feature = config.route.feature
         const color = routeColors[routeKey] || '#ffffff'
         const trainIndex = this.trains.length
-        const { el, bodyEl, syncMarkerSize } = createTrainMarkerDom({ color, trainIndex })
+        const { el, bodyEl, syncMarkerSize } = createTrainMarkerDom({ trainIndex })
 
         const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
 
@@ -175,6 +183,7 @@ export class TrainSystem {
             visualColor: color,
             _routeStations: this.routeStations?.[routeKey] || [],
             isTracked: false,
+            heading: 0,
             syncHitArea: () => syncHitArea(train)
         }
         this.trains.push(train)
@@ -221,9 +230,23 @@ export class TrainSystem {
             this._hoverPopup.remove()
             this._hoverPopup = null
         }
+        this.train3dLayer?.setVisible(show)
         this.trains.forEach(t => {
             if (t.el) t.el.style.display = show ? '' : 'none'
         })
+    }
+
+    _ensureTrain3dLayer() {
+        if (this.map.isStyleLoaded && !this.map.isStyleLoaded()) return
+        this.train3dLayer?.add(findBuildingLayer(this.map) || undefined)
+    }
+
+    _syncTrain3d() {
+        this._ensureTrain3dLayer()
+        this.trains.forEach(train => {
+            train.heading = this._computeHeading(train)
+        })
+        this.train3dLayer?.sync(this.trains)
     }
 
     getArrivals(stationCode) {
@@ -273,6 +296,7 @@ export class TrainSystem {
                 // Keep the simulation running even if one train frame fails.
             }
         })
+        this._syncTrain3d()
 
         // Refresh panel + keep the tracking camera locked to the selected train.
         if (this.trackingCamera.trackedTrain?.marker) {
@@ -292,6 +316,17 @@ export class TrainSystem {
 
     stop() {
         cancelAnimationFrame(this.animationFrame)
+    }
+
+    destroy() {
+        this.stop()
+        this.map.off('style.load', this._handleStyleLoad)
+        if (this._hoverPopup) this._hoverPopup.remove()
+        this.trains.forEach(train => train.marker?.remove())
+        if (this.map.getLayer(this.train3dLayer?.id)) {
+            this.map.removeLayer(this.train3dLayer.id)
+        }
+        this.train3dLayer = null
     }
 }
 
