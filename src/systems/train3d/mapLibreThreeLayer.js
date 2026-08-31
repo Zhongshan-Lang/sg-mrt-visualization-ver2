@@ -3,12 +3,12 @@ import * as THREE from 'three'
 
 const SQRT3 = Math.sqrt(3)
 
-export function getProjectionMatrix(renderData) {
+export function getMainProjectionMatrix(renderData) {
     if (Array.isArray(renderData) || ArrayBuffer.isView(renderData)) {
         return renderData
     }
 
-    const matrix = renderData?.projectionMatrix ?? renderData?.modelViewProjectionMatrix
+    const matrix = renderData?.defaultProjectionData?.mainMatrix ?? renderData?.mainMatrix
     if (!matrix) {
         throw new Error('MapLibre custom layer did not provide a projection matrix')
     }
@@ -23,9 +23,9 @@ export function getLocalMercatorPosition(origin, coordinate) {
     )
 }
 
-// MapLibre 5 supplies a projection matrix for a mercator custom layer. Keep
-// mesh coordinates in that world space instead of reconstructing a private map
-// camera transform; this is the supported path for depth-aware 3D custom layers.
+// This camera path follows mini-tokyo-3d's custom Three layer. In particular,
+// the view matrix is assigned directly, which keeps MapLibre's scale component
+// intact on current Three.js versions.
 export class MapLibreThreeLayer {
     constructor({ id, beforeId, minzoom = 0, maxzoom = 24 }) {
         this.id = id
@@ -33,7 +33,7 @@ export class MapLibreThreeLayer {
         this.minzoom = minzoom
         this.maxzoom = maxzoom
         this.scene = new THREE.Scene()
-        this.camera = new THREE.Camera()
+        this.camera = new THREE.PerspectiveCamera()
         this.camera.matrixWorldAutoUpdate = false
     }
 
@@ -43,7 +43,7 @@ export class MapLibreThreeLayer {
             type: 'custom',
             renderingMode: '3d',
             onAdd: (mbox, gl) => this.onAdd(mbox, gl),
-            render: (gl, renderData) => this.render(gl, renderData),
+            render: (gl, matrix) => this.render(gl, matrix),
             onRemove: () => this.destroy(),
         }, this.beforeId)
         map.setLayerZoomRange(this.id, this.minzoom, this.maxzoom)
@@ -62,11 +62,33 @@ export class MapLibreThreeLayer {
         this.scene.add(new THREE.Mesh())
     }
 
-    render(_gl, renderData) {
-        this.camera.projectionMatrix.fromArray(getProjectionMatrix(renderData))
+    render(_gl, matrix) {
+        const { transform } = this.map
+        const { _fov, _camera, _horizonShift, pixelsPerMeter, worldSize, _pitch, width, height } = transform
+        const halfFov = _fov / 2
+        const cameraToSeaLevelDistance = _camera.position[2] * worldSize / Math.cos(_pitch)
+        const horizonDistance = cameraToSeaLevelDistance / _horizonShift
+        const undergroundDistance = 1000 * pixelsPerMeter / Math.cos(_pitch)
+        const far = Math.max(horizonDistance, cameraToSeaLevelDistance + undergroundDistance)
+        const near = height / 50
+        const halfHeight = Math.tan(halfFov) * near
+        const halfWidth = halfHeight * width / height
+
+        this.camera.near = near
+        this.camera.far = far
+        this.camera.projectionMatrix.makePerspective(-halfWidth, halfWidth, halfHeight, -halfHeight, near, far)
         this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert()
-        this.camera.matrixWorld.identity()
-        this.camera.matrixWorldInverse.identity()
+
+        const mapMatrix = new THREE.Matrix4().fromArray(getMainProjectionMatrix(matrix))
+        const localTransform = new THREE.Matrix4()
+            .makeTranslation(this.modelOrigin.x, this.modelOrigin.y, 0)
+            .scale(new THREE.Vector3(1, -1, 1))
+
+        this.camera.matrixWorldInverse
+            .copy(this.camera.projectionMatrixInverse)
+            .multiply(mapMatrix)
+            .multiply(localTransform)
+        this.camera.matrixWorld.copy(this.camera.matrixWorldInverse).invert()
 
         const lightBearing = THREE.MathUtils.degToRad(this.map.getBearing() + 30)
         this.directionalLight.position.set(-Math.sin(lightBearing), -Math.cos(lightBearing), SQRT3).normalize()
@@ -77,9 +99,9 @@ export class MapLibreThreeLayer {
 
     setCarPose(mesh, { lngLat, altitude = 0, heading = 0 }) {
         const coordinate = maplibregl.MercatorCoordinate.fromLngLat(lngLat, altitude)
+        mesh.position.copy(getLocalMercatorPosition(this.modelOrigin, coordinate))
         const meterScale = coordinate.meterInMercatorCoordinateUnits()
-        mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
-        mesh.scale.set(meterScale, -meterScale, meterScale)
+        mesh.scale.setScalar(meterScale)
         mesh.rotation.set(0, 0, -THREE.MathUtils.degToRad(heading))
     }
 
