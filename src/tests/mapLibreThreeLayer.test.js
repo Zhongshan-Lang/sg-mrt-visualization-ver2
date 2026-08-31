@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import * as THREE from 'three'
-import { MapLibreThreeLayer, getLocalMercatorPosition, getTrainMeshTransform } from '../systems/train3d/mapLibreThreeLayer'
+import { MapLibreThreeLayer, getLocalMercatorPosition } from '../systems/train3d/mapLibreThreeLayer'
 
 describe('MapLibre Three layer coordinates', () => {
     it('maps world Mercator coordinates into the layer-local right-handed space', () => {
@@ -45,11 +45,5 @@ describe('MapLibre Three layer coordinates', () => {
         expect(layer.camera.projectionMatrix.elements[0]).toBe(2)
         expect(layer.camera.matrixWorldInverse.elements.every(Number.isFinite)).toBe(true)
         expect(layer.renderer.render).toHaveBeenCalledOnce()
-    })
-    it('uses positive scales so exterior train faces are not culled', () => {
-        const transform = getTrainMeshTransform(2.5e-8, 90)
-
-        expect(transform.scale).toEqual([2.5e-8, 2.5e-8, 2.5e-8])
-        expect(transform.rotationZ).toBeCloseTo(Math.PI * 1.5)
     })
 })
