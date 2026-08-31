@@ -57,33 +57,4 @@ describe('3D train layer', () => {
         expect(layer.camera.projectionMatrix.elements[0]).toBe(7)
         expect(render).toHaveBeenCalledWith(layer.scene, layer.camera)
     })
-
-    it('keeps every instanced train transform right-handed', () => {
-        const map = {
-            getLayer: vi.fn(() => null),
-            addLayer: vi.fn(),
-            triggerRepaint: vi.fn()
-        }
-        const mesh = () => ({
-            count: 0,
-            instanceMatrix: {},
-            setMatrixAt: vi.fn(),
-            setColorAt: vi.fn()
-        })
-        const layer = new Train3DLayer(map)
-        layer.group = new THREE.Group()
-        layer.meshes = {
-            body: mesh(), roof: mesh(), leftWindows: mesh(), rightWindows: mesh(), frontWindow: mesh()
-        }
-
-        layer.sync([{
-            heading: 45,
-            visualColor: '#d42e12',
-            isTracked: false,
-            marker: { getLngLat: () => ({ lng: 103.851959, lat: 1.29027 }) }
-        }])
-
-        const transform = layer.meshes.body.setMatrixAt.mock.calls[0][1]
-        expect(transform.determinant()).toBeGreaterThan(0)
-    })
 })

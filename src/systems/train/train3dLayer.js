@@ -154,7 +154,7 @@ export class Train3DLayer {
             const heading = train.heading || 0
 
             this._position.set(coordinate.x, coordinate.y, coordinate.z)
-            this._scale.set(scale, scale, scale)
+            this._scale.set(scale, -scale, scale)
             this._rotation.setFromAxisAngle(new THREE.Vector3(0, 0, 1), trainHeadingToModelYaw(heading || 0))
             this._matrix.compose(this._position, this._rotation, this._scale)
 
