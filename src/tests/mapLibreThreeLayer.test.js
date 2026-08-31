@@ -35,9 +35,7 @@ describe('MapLibre Three layer coordinates', () => {
         layer.ambientLight = new THREE.AmbientLight()
 
         layer.render(null, {
-            defaultProjectionData: {
-                mainMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-            },
+            projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
         })
 
         expect(layer.camera.matrixWorldInverse.elements.every(Number.isFinite)).toBe(true)
