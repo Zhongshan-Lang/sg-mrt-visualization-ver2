@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createNativeTrainFeatures, getNativeTrainSizeScale, getTrainForNativeFeature, moveNativeTrainLayerAboveNetwork } from '../systems/train/trainNative3dLayer'
+import { createNativeTrainFeatures, getNativeTrainSizeScale, getSelectedTrainPulse, getTrainForNativeFeature, moveNativeTrainLayerAboveNetwork } from '../systems/train/trainNative3dLayer'
 
 describe('native 3D train features', () => {
     it('creates one enlarged, closed, elevated train footprint for each simulated train', () => {
@@ -72,5 +72,10 @@ describe('native 3D train features', () => {
         expect(glow.geometry.type).toBe('LineString')
         expect(glow.properties).toMatchObject({ trainId: train.id, isHighlight: true })
         expect(body.geometry.type).toBe('Polygon')
+    })
+    it('breathes smoothly between a soft and bright selected-train glow', () => {
+        expect(getSelectedTrainPulse(0)).toBeCloseTo(0.5)
+        expect(getSelectedTrainPulse(450)).toBeCloseTo(1)
+        expect(getSelectedTrainPulse(1350)).toBeCloseTo(0)
     })
 })
