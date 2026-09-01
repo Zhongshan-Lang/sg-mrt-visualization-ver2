@@ -79,7 +79,10 @@ export class NativeTrain3dLayer {
     constructor(map, trains, getHeading, callbacks = {}) {
         this.map = map
         this.getHeading = getHeading
-        this.markerOpacities = new Map(trains.map(train => [train, train.el?.style.opacity ?? '']))
+        this.markerStyles = new Map(trains.map(train => [train, {
+            opacity: train.el?.style.opacity ?? '',
+            pointerEvents: train.el?.style.pointerEvents ?? '',
+        }]))
         this.trains = trains
         this.onZoom = () => this.sync(this.trains)
         this.onMouseEnter = event => {
@@ -120,7 +123,9 @@ export class NativeTrain3dLayer {
         map.on('click', LAYER_ID, this.onClick)
 
         trains.forEach(train => {
-            if (train.el) train.el.style.opacity = '0'
+            if (!train.el) return
+            train.el.style.opacity = '0'
+            train.el.style.pointerEvents = 'none'
         })
         this.sync(trains)
     }
@@ -143,8 +148,10 @@ export class NativeTrain3dLayer {
         this.map?.off('mouseenter', LAYER_ID, this.onMouseEnter)
         this.map?.off('mouseleave', LAYER_ID, this.onMouseLeave)
         this.map?.off('click', LAYER_ID, this.onClick)
-        this.markerOpacities?.forEach((opacity, train) => {
-            if (train.el) train.el.style.opacity = opacity
+        this.markerStyles?.forEach((styles, train) => {
+            if (!train.el) return
+            train.el.style.opacity = styles.opacity
+            train.el.style.pointerEvents = styles.pointerEvents
         })
         if (this.map?.getLayer(LAYER_ID)) this.map.removeLayer(LAYER_ID)
         if (this.map?.getSource(SOURCE_ID)) this.map.removeSource(SOURCE_ID)
