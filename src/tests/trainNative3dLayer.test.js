@@ -17,17 +17,17 @@ describe('native 3D train features', () => {
     })
 
     it('smoothly adapts the train size to camera zoom', () => {
-        expect(getNativeTrainSizeScale(10)).toBe(1.25)
-        expect(getNativeTrainSizeScale(13)).toBeCloseTo(1.125)
-        expect(getNativeTrainSizeScale(15)).toBe(1)
-        expect(getNativeTrainSizeScale(19)).toBe(0.82)
-        expect(getNativeTrainSizeScale(22)).toBe(0.82)
+        expect(getNativeTrainSizeScale(10)).toBe(1.6)
+        expect(getNativeTrainSizeScale(13)).toBeCloseTo(1.45)
+        expect(getNativeTrainSizeScale(15)).toBe(1.3)
+        expect(getNativeTrainSizeScale(19)).toBe(1.05)
+        expect(getNativeTrainSizeScale(22)).toBe(1.05)
 
         const [feature] = createNativeTrainFeatures([{
             marker: { getLngLat: () => ({ toArray: () => [103.85, 1.29] }) },
             visualColor: '#009645',
-        }], () => 90, 1.25)
-        expect(feature.properties.height).toBe(8.125)
+        }], () => 90, 1.6)
+        expect(feature.properties.height).toBe(10.4)
     })
 
     it('moves the train immediately before the building layer after map ordering is configured', () => {
