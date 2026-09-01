@@ -39,10 +39,11 @@ describe('native 3D train features', () => {
         expect(feature.properties.height).toBe(32.5)
     })
 
-    it('moves the selection aura and train immediately before the building layer', () => {
+    it('moves the rectangular aura and train immediately before the building layer', () => {
         const map = {
             getStyle: () => ({ layers: [
-                { id: 'mrt-train-3d-selection-aura', type: 'circle' },
+                { id: 'mrt-train-3d-selection-base', type: 'fill' },
+                { id: 'mrt-train-3d-selection-glow', type: 'line' },
                 { id: 'mrt-train-3d-body', type: 'fill-extrusion' },
                 { id: 'building', type: 'fill-extrusion' },
             ] }),
@@ -52,11 +53,12 @@ describe('native 3D train features', () => {
 
         moveNativeTrainLayerAboveNetwork(map)
 
-        expect(map.moveLayer).toHaveBeenNthCalledWith(1, 'mrt-train-3d-selection-aura', 'building')
-        expect(map.moveLayer).toHaveBeenNthCalledWith(2, 'mrt-train-3d-body', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(1, 'mrt-train-3d-selection-base', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(2, 'mrt-train-3d-selection-glow', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(3, 'mrt-train-3d-body', 'building')
     })
 
-    it('adds a radial aura only for the selected train', () => {
+    it('adds a rectangular base and glow only for the selected train', () => {
         const train = {
             id: 'EW_MAIN_3',
             marker: { getLngLat: () => ({ toArray: () => [103.85, 1.29] }) },
@@ -64,12 +66,14 @@ describe('native 3D train features', () => {
         }
 
         const features = createNativeTrainFeatures([train], () => 90, 1, train.id)
-        const glow = features.find(feature => feature.properties.isHighlight)
+        const auraBase = features.find(feature => feature.properties.highlightKind === 'base')
+        const auraGlow = features.find(feature => feature.properties.highlightKind === 'glow')
         const body = features.find(feature => !feature.properties.isHighlight)
 
-        expect(features).toHaveLength(2)
-        expect(glow.geometry.type).toBe('Point')
-        expect(glow.properties).toMatchObject({ trainId: train.id, isHighlight: true })
+        expect(features).toHaveLength(3)
+        expect(auraBase.geometry.type).toBe('Polygon')
+        expect(auraGlow.geometry.type).toBe('LineString')
+        expect(auraBase.geometry.coordinates).toEqual(body.geometry.coordinates)
         expect(body.geometry.type).toBe('Polygon')
     })
     it('breathes smoothly between a soft and bright selected-train glow', () => {
