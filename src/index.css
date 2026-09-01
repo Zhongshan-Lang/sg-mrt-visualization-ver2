@@ -68,6 +68,11 @@ body {
   overflow: hidden;
 }
 
+/* Native 3D train bodies replace the legacy DOM train markers. This also affects markers created before a hot reload, so their glowing dots cannot remain visible or intercept the native layer's feature events. */
+[data-train-idx] {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 h1,
 h2 {
   font-family: var(--heading);
