@@ -163,7 +163,7 @@ export class NativeTrain3dLayer {
             filter: ['==', ['get', 'highlightKind'], 'base'],
             paint: {
                 'fill-color': ['get', 'color'],
-                'fill-opacity': 0.14,
+                'fill-opacity': 0.22,
             },
         }, LAYER_ID)
         map.addLayer({
@@ -174,9 +174,9 @@ export class NativeTrain3dLayer {
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
                 'line-color': ['get', 'color'],
-                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 5, 15, 9, 19, 14],
-                'line-opacity': 0.3,
-                'line-blur': 4.5,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 8, 15, 14, 19, 22],
+                'line-opacity': 0.46,
+                'line-blur': 6.5,
             },
         }, LAYER_ID)
         queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
@@ -197,11 +197,11 @@ export class NativeTrain3dLayer {
         if (!this.map?.setPaintProperty) return
 
         if (this.map.getLayer(HIGHLIGHT_FILL_LAYER_ID)) {
-            this.map.setPaintProperty(HIGHLIGHT_FILL_LAYER_ID, 'fill-opacity', 0.14 + (pulse * 0.22))
+            this.map.setPaintProperty(HIGHLIGHT_FILL_LAYER_ID, 'fill-opacity', 0.22 + (pulse * 0.32))
         }
         if (this.map.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) {
-            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-opacity', 0.3 + (pulse * 0.48))
-            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-blur', 4.5 + (pulse * 3.5))
+            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-opacity', 0.46 + (pulse * 0.42))
+            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-blur', 6.5 + (pulse * 4.5))
         }
     }
     _pulse(timestamp) {
