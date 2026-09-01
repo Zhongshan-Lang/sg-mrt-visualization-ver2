@@ -18,7 +18,10 @@ describe('native 3D train features', () => {
 
     it('moves the train immediately before the building layer after map ordering is configured', () => {
         const map = {
-            getStyle: () => ({ layers: [{ id: 'building', type: 'fill-extrusion' }] }),
+            getStyle: () => ({ layers: [
+                { id: 'mrt-train-3d-body', type: 'fill-extrusion' },
+                { id: 'building', type: 'fill-extrusion' },
+            ] }),
             getLayer: id => id === 'mrt-train-3d-body' ? { id } : null,
             moveLayer: vi.fn(),
         }

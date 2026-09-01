@@ -8,7 +8,7 @@ const TRAIN_HEIGHT_METERS = 6.5
 const TRAIN_BASE_METERS = 0.28
 
 function findBuildingBeforeId(map) {
-    return map.getStyle()?.layers?.find(layer => layer.type === 'fill-extrusion')?.id
+    return map.getStyle()?.layers?.find(layer => layer.id !== LAYER_ID && layer.type === 'fill-extrusion')?.id
 }
 
 export function moveNativeTrainLayerAboveNetwork(map) {
