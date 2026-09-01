@@ -54,6 +54,11 @@ function createCarPolygon(center, heading, sizeScale) {
     return [frontRight, backRight, backLeft, frontLeft, frontRight]
 }
 
+export function getTrainForNativeFeature(trains, feature) {
+    const trainId = feature?.properties?.trainId
+    return trains.find(train => train.id === trainId) || null
+}
+
 export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1) {
     return trains.flatMap(train => {
         if (!train?.marker) return []
@@ -62,6 +67,7 @@ export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1) {
         const heading = getHeading(train)
 
         return [turf.polygon([createCarPolygon(center, heading, sizeScale)], {
+            trainId: train.id,
             color: train.visualColor,
             height: TRAIN_HEIGHT_METERS * sizeScale,
             base: TRAIN_BASE_METERS,
@@ -70,12 +76,26 @@ export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1) {
 }
 
 export class NativeTrain3dLayer {
-    constructor(map, trains, getHeading) {
+    constructor(map, trains, getHeading, callbacks = {}) {
         this.map = map
         this.getHeading = getHeading
         this.markerOpacities = new Map(trains.map(train => [train, train.el?.style.opacity ?? '']))
         this.trains = trains
         this.onZoom = () => this.sync(this.trains)
+        this.onMouseEnter = event => {
+            const train = getTrainForNativeFeature(this.trains, event.features?.[0])
+            if (!train) return
+            this.map.getCanvas().style.cursor = 'pointer'
+            callbacks.onHoverStart?.(train)
+        }
+        this.onMouseLeave = () => {
+            this.map.getCanvas().style.cursor = ''
+            callbacks.onHoverEnd?.()
+        }
+        this.onClick = event => {
+            const train = getTrainForNativeFeature(this.trains, event.features?.[0])
+            if (train) callbacks.onClick?.(train)
+        }
 
         map.addSource(SOURCE_ID, {
             type: 'geojson',
@@ -95,6 +115,9 @@ export class NativeTrain3dLayer {
         }, findBuildingBeforeId(map))
         queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
         map.on('zoom', this.onZoom)
+        map.on('mouseenter', LAYER_ID, this.onMouseEnter)
+        map.on('mouseleave', LAYER_ID, this.onMouseLeave)
+        map.on('click', LAYER_ID, this.onClick)
 
         trains.forEach(train => {
             if (train.el) train.el.style.opacity = '0'
@@ -117,6 +140,9 @@ export class NativeTrain3dLayer {
 
     destroy() {
         this.map?.off('zoom', this.onZoom)
+        this.map?.off('mouseenter', LAYER_ID, this.onMouseEnter)
+        this.map?.off('mouseleave', LAYER_ID, this.onMouseLeave)
+        this.map?.off('click', LAYER_ID, this.onClick)
         this.markerOpacities?.forEach((opacity, train) => {
             if (train.el) train.el.style.opacity = opacity
         })

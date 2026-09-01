@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createNativeTrainFeatures, getNativeTrainSizeScale, moveNativeTrainLayerAboveNetwork } from '../systems/train/trainNative3dLayer'
+import { createNativeTrainFeatures, getNativeTrainSizeScale, getTrainForNativeFeature, moveNativeTrainLayerAboveNetwork } from '../systems/train/trainNative3dLayer'
 
 describe('native 3D train features', () => {
     it('creates one enlarged, closed, elevated train footprint for each simulated train', () => {
@@ -14,6 +14,15 @@ describe('native 3D train features', () => {
             expect(ring[0]).toEqual(ring.at(-1))
             expect(feature.properties).toMatchObject({ color: '#009645', height: 6.5, base: 0.28 })
         })
+    })
+
+    it('maps an extruded feature back to its original train object', () => {
+        const train = { id: 'EW_MAIN_3', marker: { getLngLat: () => ({ toArray: () => [103.85, 1.29] }) }, visualColor: '#009645' }
+        const [feature] = createNativeTrainFeatures([train], () => 90)
+
+        expect(feature.properties.trainId).toBe('EW_MAIN_3')
+        expect(getTrainForNativeFeature([train], feature)).toBe(train)
+        expect(getTrainForNativeFeature([train], { properties: { trainId: 'missing' } })).toBeNull()
     })
 
     it('smoothly adapts the train size to camera zoom', () => {

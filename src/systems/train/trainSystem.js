@@ -66,7 +66,11 @@ export class TrainSystem {
         this.stationCoords = network.stationCoords
 
         this.createInitialTrains()
-        this.nativeTrainLayer = new NativeTrain3dLayer(this.map, this.trains, train => this._computeHeading(train))
+        this.nativeTrainLayer = new NativeTrain3dLayer(this.map, this.trains, train => this._computeHeading(train), {
+            onHoverStart: train => this._handleTrainHoverStart(train),
+            onHoverEnd: () => this._handleTrainHoverEnd(),
+            onClick: train => this._handleTrainClick(train),
+        })
 
         this.lastTime = performance.now()
     }
@@ -134,29 +138,9 @@ export class TrainSystem {
                 const idx = parseInt(bodyEl.getAttribute('data-train-idx'))
                 return this.trains[idx]
             },
-            onHoverStart: (train) => {
-                if (this._hoverPopup) return
-                const trainData = this._buildPanelData(train)
-                this._hoverPopup = new maplibregl.Popup({ offset: 12, closeButton: false, closeOnClick: false })
-                    .setLngLat(train.marker.getLngLat())
-                    .setHTML(buildTrainPopupHTML(trainData, {
-                        geojson: this.geojson,
-                        routeColors,
-                        lineColor: color
-                    }))
-                    .addTo(this.map)
-                const popupEl = this._hoverPopup.getElement()
-                if (popupEl) popupEl.style.zIndex = '99'
-            },
-            onHoverEnd: () => {
-                if (this._hoverPopup) {
-                    this._hoverPopup.remove()
-                    this._hoverPopup = null
-                }
-            },
-            onClick: (train) => {
-                this.selectionController.handleMarkerClick(train, el)
-            }
+            onHoverStart: train => this._handleTrainHoverStart(train),
+            onHoverEnd: () => this._handleTrainHoverEnd(),
+            onClick: train => this._handleTrainClick(train),
         })
 
         const firstCoord = getInitialTrainCoord(feature)
@@ -246,6 +230,31 @@ export class TrainSystem {
         return buildTrainPanelData(train)
     }
 
+    _handleTrainHoverStart(train) {
+        if (!train || this._hoverPopup) return
+        const trainData = this._buildPanelData(train)
+        this._hoverPopup = new maplibregl.Popup({ offset: 12, closeButton: false, closeOnClick: false })
+            .setLngLat(train.marker.getLngLat())
+            .setHTML(buildTrainPopupHTML(trainData, {
+                geojson: this.geojson,
+                routeColors,
+                lineColor: train.visualColor,
+            }))
+            .addTo(this.map)
+        const popupEl = this._hoverPopup.getElement()
+        if (popupEl) popupEl.style.zIndex = '99'
+    }
+
+    _handleTrainHoverEnd() {
+        if (this._hoverPopup) {
+            this._hoverPopup.remove()
+            this._hoverPopup = null
+        }
+    }
+
+    _handleTrainClick(train) {
+        this.selectionController.handleMarkerClick(train, train.el)
+    }
     setTrackingView(mode) {
         this.trackingCamera.setView(mode)
     }
