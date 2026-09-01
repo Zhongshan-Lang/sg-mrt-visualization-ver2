@@ -53,7 +53,7 @@ describe('native 3D train features', () => {
 
         expect(map.moveLayer).toHaveBeenCalledWith('mrt-train-3d-body', 'building')
     })
-    it('adds a larger gold 3D halo only for the selected train', () => {
+    it('adds a blurred ground-glow outline only for the selected train', () => {
         const train = {
             id: 'EW_MAIN_3',
             marker: { getLngLat: () => ({ toArray: () => [103.85, 1.29] }) },
@@ -61,15 +61,12 @@ describe('native 3D train features', () => {
         }
 
         const features = createNativeTrainFeatures([train], () => 90, 1, train.id)
-        const halo = features.find(feature => feature.properties.isHighlight)
+        const glow = features.find(feature => feature.properties.isHighlight)
         const body = features.find(feature => !feature.properties.isHighlight)
 
         expect(features).toHaveLength(2)
-        expect(halo.properties).toMatchObject({
-            trainId: train.id,
-            color: '#ffe66d',
-            isHighlight: true,
-        })
-        expect(halo.properties.height).toBeLessThan(body.properties.height)
+        expect(glow.geometry.type).toBe('LineString')
+        expect(glow.properties).toMatchObject({ trainId: train.id, isHighlight: true })
+        expect(body.geometry.type).toBe('Polygon')
     })
 })

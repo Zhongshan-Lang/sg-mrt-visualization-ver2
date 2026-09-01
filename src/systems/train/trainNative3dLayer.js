@@ -19,9 +19,9 @@ export function moveNativeTrainLayerAboveNetwork(map) {
     }
 }
 
-const HIGHLIGHT_LAYER_ID = 'mrt-train-3d-highlight'
-const SELECTED_HALO_SCALE = 1.22
-const SELECTED_HALO_HEIGHT_SCALE = 0.98
+const HIGHLIGHT_GLOW_LAYER_ID = 'mrt-train-3d-highlight-glow'
+const HIGHLIGHT_CORE_LAYER_ID = 'mrt-train-3d-highlight-core'
+const SELECTED_GLOW_SCALE = 1.18
 export function getNativeTrainSizeScale(zoom) {
     const safeZoom = Number.isFinite(zoom) ? zoom : 15
     if (safeZoom <= TRAIN_SIZE_SCALE_STOPS[0][0]) return TRAIN_SIZE_SCALE_STOPS[0][1]
@@ -68,24 +68,20 @@ export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1, sel
 
         const center = train.marker.getLngLat().toArray()
         const heading = getHeading(train)
-        const height = TRAIN_HEIGHT_METERS * sizeScale
         const body = turf.polygon([createCarPolygon(center, heading, sizeScale)], {
             trainId: train.id,
             color: train.visualColor,
-            height,
+            height: TRAIN_HEIGHT_METERS * sizeScale,
             base: TRAIN_BASE_METERS,
         })
 
         if (train.id !== selectedTrainId) return [body]
 
-        const halo = turf.polygon([createCarPolygon(center, heading, sizeScale * SELECTED_HALO_SCALE)], {
+        const glow = turf.lineString(createCarPolygon(center, heading, sizeScale * SELECTED_GLOW_SCALE), {
             trainId: train.id,
-            color: '#ffe66d',
-            height: height * SELECTED_HALO_HEIGHT_SCALE,
-            base: TRAIN_BASE_METERS,
             isHighlight: true,
         })
-        return [halo, body]
+        return [glow, body]
     })
 }
 
@@ -133,16 +129,28 @@ export class NativeTrain3dLayer {
             },
         }, findBuildingBeforeId(map))
         map.addLayer({
-            id: HIGHLIGHT_LAYER_ID,
-            type: 'fill-extrusion',
+            id: HIGHLIGHT_GLOW_LAYER_ID,
+            type: 'line',
             source: SOURCE_ID,
             filter: ['==', ['get', 'isHighlight'], true],
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
-                'fill-extrusion-color': ['get', 'color'],
-                'fill-extrusion-height': ['get', 'height'],
-                'fill-extrusion-base': ['get', 'base'],
-                'fill-extrusion-opacity': 0.9,
-                'fill-extrusion-vertical-gradient': false,
+                'line-color': '#ffe66d',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 5, 15, 10, 19, 16],
+                'line-opacity': 0.72,
+                'line-blur': ['interpolate', ['linear'], ['zoom'], 11, 4, 15, 7, 19, 11],
+            },
+        }, LAYER_ID)
+        map.addLayer({
+            id: HIGHLIGHT_CORE_LAYER_ID,
+            type: 'line',
+            source: SOURCE_ID,
+            filter: ['==', ['get', 'isHighlight'], true],
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+                'line-color': '#fff7bf',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 2, 19, 3],
+                'line-opacity': 0.95,
             },
         }, LAYER_ID)
         map.on('zoom', this.onZoom)
@@ -176,7 +184,8 @@ export class NativeTrain3dLayer {
 
     setVisible(visible) {
         const visibility = visible ? 'visible' : 'none'
-        ;[HIGHLIGHT_LAYER_ID, LAYER_ID].forEach(layerId => {
+        const layerIds = [HIGHLIGHT_GLOW_LAYER_ID, HIGHLIGHT_CORE_LAYER_ID, LAYER_ID]
+        layerIds.forEach(layerId => {
             if (this.map?.getLayer(layerId)) {
                 this.map.setLayoutProperty(layerId, 'visibility', visibility)
             }
@@ -194,7 +203,8 @@ export class NativeTrain3dLayer {
             train.el.style.pointerEvents = styles.pointerEvents
         })
         if (this.map?.getLayer(LAYER_ID)) this.map.removeLayer(LAYER_ID)
-        if (this.map?.getLayer(HIGHLIGHT_LAYER_ID)) this.map.removeLayer(HIGHLIGHT_LAYER_ID)
+        if (this.map?.getLayer(HIGHLIGHT_CORE_LAYER_ID)) this.map.removeLayer(HIGHLIGHT_CORE_LAYER_ID)
+        if (this.map?.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) this.map.removeLayer(HIGHLIGHT_GLOW_LAYER_ID)
         if (this.map?.getSource(SOURCE_ID)) this.map.removeSource(SOURCE_ID)
         this.map = null
     }
