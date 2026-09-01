@@ -11,6 +11,13 @@ function findBuildingBeforeId(map) {
     return map.getStyle()?.layers?.find(layer => layer.type === 'fill-extrusion')?.id
 }
 
+export function moveNativeTrainLayerAboveNetwork(map) {
+    const buildingLayerId = findBuildingBeforeId(map)
+    if (buildingLayerId && map.getLayer(LAYER_ID)) {
+        map.moveLayer(LAYER_ID, buildingLayerId)
+    }
+}
+
 function offsetCoordinate(center, distanceMeters, bearing) {
     return turf.destination(center, distanceMeters / 1000, bearing, { units: 'kilometers' }).geometry.coordinates
 }
@@ -63,6 +70,7 @@ export class NativeTrain3dLayer {
                 'fill-extrusion-vertical-gradient': true,
             },
         }, findBuildingBeforeId(map))
+        queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
 
         trains.forEach(train => {
             if (train.el) train.el.style.opacity = '0'
