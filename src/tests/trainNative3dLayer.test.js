@@ -39,19 +39,23 @@ describe('native 3D train features', () => {
         expect(feature.properties.height).toBe(32.5)
     })
 
-    it('moves the train immediately before the building layer after map ordering is configured', () => {
+    it('moves the selected glow and train immediately before the building layer', () => {
         const map = {
             getStyle: () => ({ layers: [
+                { id: 'mrt-train-3d-highlight-glow', type: 'line' },
+                { id: 'mrt-train-3d-highlight-core', type: 'line' },
                 { id: 'mrt-train-3d-body', type: 'fill-extrusion' },
                 { id: 'building', type: 'fill-extrusion' },
             ] }),
-            getLayer: id => id === 'mrt-train-3d-body' ? { id } : null,
+            getLayer: id => id.startsWith('mrt-train-3d-') ? { id } : null,
             moveLayer: vi.fn(),
         }
 
         moveNativeTrainLayerAboveNetwork(map)
 
-        expect(map.moveLayer).toHaveBeenCalledWith('mrt-train-3d-body', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(1, 'mrt-train-3d-highlight-glow', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(2, 'mrt-train-3d-highlight-core', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(3, 'mrt-train-3d-body', 'building')
     })
     it('adds a blurred ground-glow outline only for the selected train', () => {
         const train = {

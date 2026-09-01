@@ -14,11 +14,15 @@ function findBuildingBeforeId(map) {
 
 export function moveNativeTrainLayerAboveNetwork(map) {
     const buildingLayerId = findBuildingBeforeId(map)
-    if (buildingLayerId && map.getLayer(LAYER_ID)) {
-        map.moveLayer(LAYER_ID, buildingLayerId)
-    }
-}
+    if (!buildingLayerId) return
 
+    const layerIds = [HIGHLIGHT_GLOW_LAYER_ID, HIGHLIGHT_CORE_LAYER_ID, LAYER_ID]
+    layerIds.forEach(layerId => {
+        if (map.getLayer(layerId)) {
+            map.moveLayer(layerId, buildingLayerId)
+        }
+    })
+}
 const HIGHLIGHT_GLOW_LAYER_ID = 'mrt-train-3d-highlight-glow'
 const HIGHLIGHT_CORE_LAYER_ID = 'mrt-train-3d-highlight-core'
 const SELECTED_GLOW_SCALE = 1.18
@@ -153,6 +157,7 @@ export class NativeTrain3dLayer {
                 'line-opacity': 0.95,
             },
         }, LAYER_ID)
+        queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
         map.on('zoom', this.onZoom)
         map.on('mouseenter', LAYER_ID, this.onMouseEnter)
         map.on('mouseleave', LAYER_ID, this.onMouseLeave)
