@@ -83,6 +83,7 @@ export class TrainSystem {
         this.nativeTrainLayer?.destroy()
         this.nativeTrainLayer = this._createNativeTrainLayer()
         this.nativeTrainLayer.setVisible(this._visible ?? true)
+        this.nativeTrainLayer.setSelectedTrain(this.trackingCamera.trackedTrain)
     }
     findNearestStation(coords, threshold = 0.002) {
         return findNearestStationCode(this.stationCoords, coords, threshold)
@@ -274,10 +275,12 @@ export class TrainSystem {
 
     _startTracking(train, el) {
         this.trackingCamera.start(train, el)
+        this.nativeTrainLayer?.setSelectedTrain(train)
     }
 
     _stopTracking() {
         this.trackingCamera.stop()
+        this.nativeTrainLayer?.setSelectedTrain(null)
     }
 
     update() {

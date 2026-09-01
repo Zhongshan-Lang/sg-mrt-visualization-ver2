@@ -19,6 +19,9 @@ export function moveNativeTrainLayerAboveNetwork(map) {
     }
 }
 
+const HIGHLIGHT_LAYER_ID = 'mrt-train-3d-highlight'
+const SELECTED_HALO_SCALE = 1.22
+const SELECTED_HALO_HEIGHT_SCALE = 0.98
 export function getNativeTrainSizeScale(zoom) {
     const safeZoom = Number.isFinite(zoom) ? zoom : 15
     if (safeZoom <= TRAIN_SIZE_SCALE_STOPS[0][0]) return TRAIN_SIZE_SCALE_STOPS[0][1]
@@ -59,19 +62,30 @@ export function getTrainForNativeFeature(trains, feature) {
     return trains.find(train => train.id === trainId) || null
 }
 
-export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1) {
+export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1, selectedTrainId = null) {
     return trains.flatMap(train => {
         if (!train?.marker) return []
 
         const center = train.marker.getLngLat().toArray()
         const heading = getHeading(train)
-
-        return [turf.polygon([createCarPolygon(center, heading, sizeScale)], {
+        const height = TRAIN_HEIGHT_METERS * sizeScale
+        const body = turf.polygon([createCarPolygon(center, heading, sizeScale)], {
             trainId: train.id,
             color: train.visualColor,
-            height: TRAIN_HEIGHT_METERS * sizeScale,
+            height,
             base: TRAIN_BASE_METERS,
-        })]
+        })
+
+        if (train.id !== selectedTrainId) return [body]
+
+        const halo = turf.polygon([createCarPolygon(center, heading, sizeScale * SELECTED_HALO_SCALE)], {
+            trainId: train.id,
+            color: '#ffe66d',
+            height: height * SELECTED_HALO_HEIGHT_SCALE,
+            base: TRAIN_BASE_METERS,
+            isHighlight: true,
+        })
+        return [halo, body]
     })
 }
 
@@ -84,6 +98,7 @@ export class NativeTrain3dLayer {
             pointerEvents: train.el?.style.pointerEvents ?? '',
         }]))
         this.trains = trains
+        this.selectedTrainId = null
         this.onZoom = () => this.sync(this.trains)
         this.onMouseEnter = event => {
             const train = getTrainForNativeFeature(this.trains, event.features?.[0])
@@ -108,6 +123,7 @@ export class NativeTrain3dLayer {
             id: LAYER_ID,
             type: 'fill-extrusion',
             source: SOURCE_ID,
+            filter: ['!=', ['get', 'isHighlight'], true],
             paint: {
                 'fill-extrusion-color': ['get', 'color'],
                 'fill-extrusion-height': ['get', 'height'],
@@ -116,7 +132,19 @@ export class NativeTrain3dLayer {
                 'fill-extrusion-vertical-gradient': true,
             },
         }, findBuildingBeforeId(map))
-        queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
+        map.addLayer({
+            id: HIGHLIGHT_LAYER_ID,
+            type: 'fill-extrusion',
+            source: SOURCE_ID,
+            filter: ['==', ['get', 'isHighlight'], true],
+            paint: {
+                'fill-extrusion-color': ['get', 'color'],
+                'fill-extrusion-height': ['get', 'height'],
+                'fill-extrusion-base': ['get', 'base'],
+                'fill-extrusion-opacity': 0.9,
+                'fill-extrusion-vertical-gradient': false,
+            },
+        }, LAYER_ID)
         map.on('zoom', this.onZoom)
         map.on('mouseenter', LAYER_ID, this.onMouseEnter)
         map.on('mouseleave', LAYER_ID, this.onMouseLeave)
@@ -134,13 +162,25 @@ export class NativeTrain3dLayer {
         this.trains = trains
         const source = this.map?.getSource(SOURCE_ID)
         const sizeScale = getNativeTrainSizeScale(this.map?.getZoom?.())
-        source?.setData(turf.featureCollection(createNativeTrainFeatures(trains, this.getHeading, sizeScale)))
+        source?.setData(turf.featureCollection(
+            createNativeTrainFeatures(trains, this.getHeading, sizeScale, this.selectedTrainId)
+        ))
+    }
+
+    setSelectedTrain(train) {
+        const selectedTrainId = train?.id ?? null
+        if (this.selectedTrainId === selectedTrainId) return
+        this.selectedTrainId = selectedTrainId
+        this.sync(this.trains)
     }
 
     setVisible(visible) {
-        if (this.map?.getLayer(LAYER_ID)) {
-            this.map.setLayoutProperty(LAYER_ID, 'visibility', visible ? 'visible' : 'none')
-        }
+        const visibility = visible ? 'visible' : 'none'
+        ;[HIGHLIGHT_LAYER_ID, LAYER_ID].forEach(layerId => {
+            if (this.map?.getLayer(layerId)) {
+                this.map.setLayoutProperty(layerId, 'visibility', visibility)
+            }
+        })
     }
 
     destroy() {
@@ -154,6 +194,7 @@ export class NativeTrain3dLayer {
             train.el.style.pointerEvents = styles.pointerEvents
         })
         if (this.map?.getLayer(LAYER_ID)) this.map.removeLayer(LAYER_ID)
+        if (this.map?.getLayer(HIGHLIGHT_LAYER_ID)) this.map.removeLayer(HIGHLIGHT_LAYER_ID)
         if (this.map?.getSource(SOURCE_ID)) this.map.removeSource(SOURCE_ID)
         this.map = null
     }
