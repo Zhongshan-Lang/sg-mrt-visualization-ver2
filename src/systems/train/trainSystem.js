@@ -66,15 +66,24 @@ export class TrainSystem {
         this.stationCoords = network.stationCoords
 
         this.createInitialTrains()
-        this.nativeTrainLayer = new NativeTrain3dLayer(this.map, this.trains, train => this._computeHeading(train), {
-            onHoverStart: train => this._handleTrainHoverStart(train),
-            onHoverEnd: () => this._handleTrainHoverEnd(),
-            onClick: train => this._handleTrainClick(train),
-        })
+        this.nativeTrainLayer = this._createNativeTrainLayer()
 
         this.lastTime = performance.now()
     }
 
+    _createNativeTrainLayer() {
+        return new NativeTrain3dLayer(this.map, this.trains, train => this._computeHeading(train), {
+            onHoverStart: train => this._handleTrainHoverStart(train),
+            onHoverEnd: () => this._handleTrainHoverEnd(),
+            onClick: train => this._handleTrainClick(train),
+        })
+    }
+
+    restoreAfterStyleChange() {
+        this.nativeTrainLayer?.destroy()
+        this.nativeTrainLayer = this._createNativeTrainLayer()
+        this.nativeTrainLayer.setVisible(this._visible ?? true)
+    }
     findNearestStation(coords, threshold = 0.002) {
         return findNearestStationCode(this.stationCoords, coords, threshold)
     }

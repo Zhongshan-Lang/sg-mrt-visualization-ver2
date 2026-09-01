@@ -14,12 +14,15 @@ export function useSimulation(mapRef, mrtData) {
     const [selectedTrain, setSelectedTrain] = useState(null)
 
     const initSimulation = useCallback(() => {
-        if (!mapRef.current || !mrtData || trainSystemRef.current) return
+        if (!mapRef.current || !mrtData) return
+        if (trainSystemRef.current) {
+            trainSystemRef.current.restoreAfterStyleChange()
+            return
+        }
         trainSystemRef.current = new TrainSystem(mapRef.current, mrtData)
         trainSystemRef.current.setVisible(false)
         trainSystemRef.current.onTrainSelect = setSelectedTrain
     }, [mapRef, mrtData])
-
     const startSimulation = useCallback(() => {
         if (!mapRef.current || !mrtData) return
         if (!trainSystemRef.current) {
