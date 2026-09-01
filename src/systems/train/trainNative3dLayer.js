@@ -16,7 +16,7 @@ export function moveNativeTrainLayerAboveNetwork(map) {
     const buildingLayerId = findBuildingBeforeId(map)
     if (!buildingLayerId) return
 
-    const layerIds = [HIGHLIGHT_GLOW_LAYER_ID, HIGHLIGHT_CORE_LAYER_ID, LAYER_ID]
+    const layerIds = [HIGHLIGHT_GLOW_LAYER_ID, LAYER_ID]
     layerIds.forEach(layerId => {
         if (map.getLayer(layerId)) {
             map.moveLayer(layerId, buildingLayerId)
@@ -24,12 +24,9 @@ export function moveNativeTrainLayerAboveNetwork(map) {
     })
 }
 
-const HIGHLIGHT_GLOW_LAYER_ID = 'mrt-train-3d-highlight-glow'
-const HIGHLIGHT_CORE_LAYER_ID = 'mrt-train-3d-highlight-core'
-const SELECTED_GLOW_SCALE = 1.1
+const HIGHLIGHT_GLOW_LAYER_ID = 'mrt-train-3d-selection-aura'
 const PULSE_DURATION_MS = 1800
 const PULSE_UPDATE_INTERVAL_MS = 80
-
 export function getSelectedTrainPulse(timestamp) {
     return (Math.sin((timestamp / PULSE_DURATION_MS) * Math.PI * 2) + 1) / 2
 }
@@ -89,7 +86,7 @@ export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1, sel
 
         if (train.id !== selectedTrainId) return [body]
 
-        const glow = turf.lineString(createCarPolygon(center, heading, sizeScale * SELECTED_GLOW_SCALE), {
+        const glow = turf.point(center, {
             trainId: train.id,
             color: train.visualColor,
             isHighlight: true,
@@ -147,27 +144,14 @@ export class NativeTrain3dLayer {
         }, findBuildingBeforeId(map))
         map.addLayer({
             id: HIGHLIGHT_GLOW_LAYER_ID,
-            type: 'line',
+            type: 'circle',
             source: SOURCE_ID,
             filter: ['==', ['get', 'isHighlight'], true],
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
-                'line-color': ['get', 'color'],
-                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 3, 15, 6, 19, 9],
-                'line-opacity': 0.16,
-                'line-blur': 4.5,
-            },
-        }, LAYER_ID)
-        map.addLayer({
-            id: HIGHLIGHT_CORE_LAYER_ID,
-            type: 'line',
-            source: SOURCE_ID,
-            filter: ['==', ['get', 'isHighlight'], true],
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-                'line-color': ['get', 'color'],
-                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 0.8, 15, 1.3, 19, 2],
-                'line-opacity': 0.5,
+                'circle-color': ['get', 'color'],
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 11, 15, 19, 19, 29],
+                'circle-opacity': 0.16,
+                'circle-blur': 0.82,
             },
         }, LAYER_ID)
         queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
@@ -185,16 +169,18 @@ export class NativeTrain3dLayer {
     }
 
     _applyPulse(pulse) {
-        if (!this.map?.setPaintProperty) return
-        if (this.map.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) {
-            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-opacity', 0.16 + (pulse * 0.18))
-            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-blur', 4.5 + (pulse * 2.5))
-        }
-        if (this.map.getLayer(HIGHLIGHT_CORE_LAYER_ID)) {
-            this.map.setPaintProperty(HIGHLIGHT_CORE_LAYER_ID, 'line-opacity', 0.5 + (pulse * 0.28))
-        }
-    }
+        if (!this.map?.setPaintProperty || !this.map.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) return
 
+        const radiusScale = 0.92 + (pulse * 0.16)
+        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-opacity', 0.16 + (pulse * 0.36))
+        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-blur', 0.82 + (pulse * 0.12))
+        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-radius', [
+            'interpolate', ['linear'], ['zoom'],
+            11, 11 * radiusScale,
+            15, 19 * radiusScale,
+            19, 29 * radiusScale,
+        ])
+    }
     _pulse(timestamp) {
         if (!this.selectedTrainId || !this.visible || !this.map) {
             this.pulseFrame = null
@@ -242,7 +228,7 @@ export class NativeTrain3dLayer {
     setVisible(visible) {
         this.visible = visible
         const visibility = visible ? 'visible' : 'none'
-        const layerIds = [HIGHLIGHT_GLOW_LAYER_ID, HIGHLIGHT_CORE_LAYER_ID, LAYER_ID]
+        const layerIds = [HIGHLIGHT_GLOW_LAYER_ID, LAYER_ID]
         layerIds.forEach(layerId => {
             if (this.map?.getLayer(layerId)) {
                 this.map.setLayoutProperty(layerId, 'visibility', visibility)
@@ -264,7 +250,6 @@ export class NativeTrain3dLayer {
             train.el.style.pointerEvents = styles.pointerEvents
         })
         if (this.map?.getLayer(LAYER_ID)) this.map.removeLayer(LAYER_ID)
-        if (this.map?.getLayer(HIGHLIGHT_CORE_LAYER_ID)) this.map.removeLayer(HIGHLIGHT_CORE_LAYER_ID)
         if (this.map?.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) this.map.removeLayer(HIGHLIGHT_GLOW_LAYER_ID)
         if (this.map?.getSource(SOURCE_ID)) this.map.removeSource(SOURCE_ID)
         this.map = null

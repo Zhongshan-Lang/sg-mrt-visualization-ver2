@@ -39,11 +39,10 @@ describe('native 3D train features', () => {
         expect(feature.properties.height).toBe(32.5)
     })
 
-    it('moves the selected glow and train immediately before the building layer', () => {
+    it('moves the selection aura and train immediately before the building layer', () => {
         const map = {
             getStyle: () => ({ layers: [
-                { id: 'mrt-train-3d-highlight-glow', type: 'line' },
-                { id: 'mrt-train-3d-highlight-core', type: 'line' },
+                { id: 'mrt-train-3d-selection-aura', type: 'circle' },
                 { id: 'mrt-train-3d-body', type: 'fill-extrusion' },
                 { id: 'building', type: 'fill-extrusion' },
             ] }),
@@ -53,11 +52,11 @@ describe('native 3D train features', () => {
 
         moveNativeTrainLayerAboveNetwork(map)
 
-        expect(map.moveLayer).toHaveBeenNthCalledWith(1, 'mrt-train-3d-highlight-glow', 'building')
-        expect(map.moveLayer).toHaveBeenNthCalledWith(2, 'mrt-train-3d-highlight-core', 'building')
-        expect(map.moveLayer).toHaveBeenNthCalledWith(3, 'mrt-train-3d-body', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(1, 'mrt-train-3d-selection-aura', 'building')
+        expect(map.moveLayer).toHaveBeenNthCalledWith(2, 'mrt-train-3d-body', 'building')
     })
-    it('adds a blurred ground-glow outline only for the selected train', () => {
+
+    it('adds a radial aura only for the selected train', () => {
         const train = {
             id: 'EW_MAIN_3',
             marker: { getLngLat: () => ({ toArray: () => [103.85, 1.29] }) },
@@ -69,7 +68,7 @@ describe('native 3D train features', () => {
         const body = features.find(feature => !feature.properties.isHighlight)
 
         expect(features).toHaveLength(2)
-        expect(glow.geometry.type).toBe('LineString')
+        expect(glow.geometry.type).toBe('Point')
         expect(glow.properties).toMatchObject({ trainId: train.id, isHighlight: true })
         expect(body.geometry.type).toBe('Polygon')
     })
