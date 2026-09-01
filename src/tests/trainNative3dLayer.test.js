@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createNativeTrainFeatures, getNativeTrainSizeScale, getSelectedTrainPulse, getTrainForNativeFeature, moveNativeTrainLayerAboveNetwork } from '../systems/train/trainNative3dLayer'
+import { createNativeTrainFeatures, getNativeTrainSizeScale, getSelectedTrainGlowColor, getSelectedTrainPulse, getTrainForNativeFeature, moveNativeTrainLayerAboveNetwork } from '../systems/train/trainNative3dLayer'
 
 describe('native 3D train features', () => {
     it('creates one enlarged, closed, elevated train footprint for each simulated train', () => {
@@ -76,5 +76,9 @@ describe('native 3D train features', () => {
         expect(getSelectedTrainPulse(0)).toBeCloseTo(0.5)
         expect(getSelectedTrainPulse(450)).toBeCloseTo(1)
         expect(getSelectedTrainPulse(1350)).toBeCloseTo(0)
+    })
+    it('uses the UI highlight color for each color mode', () => {
+        expect(getSelectedTrainGlowColor('dark')).toBe('#ffd65e')
+        expect(getSelectedTrainGlowColor('light')).toBe('#005ec4')
     })
 })

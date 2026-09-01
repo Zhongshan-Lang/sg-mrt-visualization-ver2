@@ -31,6 +31,10 @@ export function getSelectedTrainPulse(timestamp) {
     return (Math.sin((timestamp / PULSE_DURATION_MS) * Math.PI * 2) + 1) / 2
 }
 
+export function getSelectedTrainGlowColor(theme) {
+    const currentTheme = theme ?? (typeof localStorage === 'undefined' ? 'light' : localStorage.getItem('mrt-theme'))
+    return currentTheme === 'dark' ? '#ffd65e' : '#005ec4'
+}
 export function getNativeTrainSizeScale(zoom) {
     const safeZoom = Number.isFinite(zoom) ? zoom : 15
     if (safeZoom <= TRAIN_SIZE_SCALE_STOPS[0][0]) return TRAIN_SIZE_SCALE_STOPS[0][1]
@@ -88,7 +92,7 @@ export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1, sel
 
         const glow = turf.point(center, {
             trainId: train.id,
-            color: train.visualColor,
+            color: getSelectedTrainGlowColor(),
             isHighlight: true,
         })
         return [glow, body]
@@ -149,9 +153,9 @@ export class NativeTrain3dLayer {
             filter: ['==', ['get', 'isHighlight'], true],
             paint: {
                 'circle-color': ['get', 'color'],
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 11, 15, 19, 19, 29],
-                'circle-opacity': 0.16,
-                'circle-blur': 0.82,
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 18, 15, 32, 19, 46],
+                'circle-opacity': 0.24,
+                'circle-blur': 0.76,
             },
         }, LAYER_ID)
         queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
@@ -171,14 +175,14 @@ export class NativeTrain3dLayer {
     _applyPulse(pulse) {
         if (!this.map?.setPaintProperty || !this.map.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) return
 
-        const radiusScale = 0.92 + (pulse * 0.16)
-        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-opacity', 0.16 + (pulse * 0.36))
-        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-blur', 0.82 + (pulse * 0.12))
+        const radiusScale = 0.9 + (pulse * 0.2)
+        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-opacity', 0.24 + (pulse * 0.48))
+        this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-blur', 0.76 + (pulse * 0.2))
         this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'circle-radius', [
             'interpolate', ['linear'], ['zoom'],
-            11, 11 * radiusScale,
-            15, 19 * radiusScale,
-            19, 29 * radiusScale,
+            11, 18 * radiusScale,
+            15, 32 * radiusScale,
+            19, 46 * radiusScale,
         ])
     }
     _pulse(timestamp) {
