@@ -6,6 +6,7 @@ const CAR_LENGTH_METERS = 68
 const CAR_WIDTH_METERS = 6
 const TRAIN_HEIGHT_METERS = 6.5
 const TRAIN_BASE_METERS = 0.28
+const TRAIN_SIZE_SCALE_STOPS = [[11, 1.25], [15, 1], [19, 0.82]]
 
 function findBuildingBeforeId(map) {
     return map.getStyle()?.layers?.find(layer => layer.id !== LAYER_ID && layer.type === 'fill-extrusion')?.id
@@ -18,31 +19,51 @@ export function moveNativeTrainLayerAboveNetwork(map) {
     }
 }
 
+export function getNativeTrainSizeScale(zoom) {
+    const safeZoom = Number.isFinite(zoom) ? zoom : 15
+    if (safeZoom <= TRAIN_SIZE_SCALE_STOPS[0][0]) return TRAIN_SIZE_SCALE_STOPS[0][1]
+    const lastStop = TRAIN_SIZE_SCALE_STOPS.at(-1)
+    if (safeZoom >= lastStop[0]) return lastStop[1]
+
+    for (let index = 1; index < TRAIN_SIZE_SCALE_STOPS.length; index += 1) {
+        const [nextZoom, nextScale] = TRAIN_SIZE_SCALE_STOPS[index]
+        const [previousZoom, previousScale] = TRAIN_SIZE_SCALE_STOPS[index - 1]
+        if (safeZoom <= nextZoom) {
+            const progress = (safeZoom - previousZoom) / (nextZoom - previousZoom)
+            return previousScale + ((nextScale - previousScale) * progress)
+        }
+    }
+
+    return lastStop[1]
+}
+
 function offsetCoordinate(center, distanceMeters, bearing) {
     return turf.destination(center, distanceMeters / 1000, bearing, { units: 'kilometers' }).geometry.coordinates
 }
 
-function createCarPolygon(center, heading) {
-    const front = offsetCoordinate(center, CAR_LENGTH_METERS / 2, heading)
-    const back = offsetCoordinate(center, CAR_LENGTH_METERS / 2, heading + 180)
-    const frontRight = offsetCoordinate(front, CAR_WIDTH_METERS / 2, heading + 90)
-    const frontLeft = offsetCoordinate(front, CAR_WIDTH_METERS / 2, heading - 90)
-    const backRight = offsetCoordinate(back, CAR_WIDTH_METERS / 2, heading + 90)
-    const backLeft = offsetCoordinate(back, CAR_WIDTH_METERS / 2, heading - 90)
+function createCarPolygon(center, heading, sizeScale) {
+    const carLength = CAR_LENGTH_METERS * sizeScale
+    const carWidth = CAR_WIDTH_METERS * sizeScale
+    const front = offsetCoordinate(center, carLength / 2, heading)
+    const back = offsetCoordinate(center, carLength / 2, heading + 180)
+    const frontRight = offsetCoordinate(front, carWidth / 2, heading + 90)
+    const frontLeft = offsetCoordinate(front, carWidth / 2, heading - 90)
+    const backRight = offsetCoordinate(back, carWidth / 2, heading + 90)
+    const backLeft = offsetCoordinate(back, carWidth / 2, heading - 90)
 
     return [frontRight, backRight, backLeft, frontLeft, frontRight]
 }
 
-export function createNativeTrainFeatures(trains, getHeading) {
+export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1) {
     return trains.flatMap(train => {
         if (!train?.marker) return []
 
         const center = train.marker.getLngLat().toArray()
         const heading = getHeading(train)
 
-        return [turf.polygon([createCarPolygon(center, heading)], {
+        return [turf.polygon([createCarPolygon(center, heading, sizeScale)], {
             color: train.visualColor,
-            height: TRAIN_HEIGHT_METERS,
+            height: TRAIN_HEIGHT_METERS * sizeScale,
             base: TRAIN_BASE_METERS,
         })]
     })
@@ -53,6 +74,8 @@ export class NativeTrain3dLayer {
         this.map = map
         this.getHeading = getHeading
         this.markerOpacities = new Map(trains.map(train => [train, train.el?.style.opacity ?? '']))
+        this.trains = trains
+        this.onZoom = () => this.sync(this.trains)
 
         map.addSource(SOURCE_ID, {
             type: 'geojson',
@@ -71,6 +94,7 @@ export class NativeTrain3dLayer {
             },
         }, findBuildingBeforeId(map))
         queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
+        map.on('zoom', this.onZoom)
 
         trains.forEach(train => {
             if (train.el) train.el.style.opacity = '0'
@@ -79,8 +103,10 @@ export class NativeTrain3dLayer {
     }
 
     sync(trains) {
+        this.trains = trains
         const source = this.map?.getSource(SOURCE_ID)
-        source?.setData(turf.featureCollection(createNativeTrainFeatures(trains, this.getHeading)))
+        const sizeScale = getNativeTrainSizeScale(this.map?.getZoom?.())
+        source?.setData(turf.featureCollection(createNativeTrainFeatures(trains, this.getHeading, sizeScale)))
     }
 
     setVisible(visible) {
@@ -90,6 +116,7 @@ export class NativeTrain3dLayer {
     }
 
     destroy() {
+        this.map?.off('zoom', this.onZoom)
         this.markerOpacities?.forEach((opacity, train) => {
             if (train.el) train.el.style.opacity = opacity
         })
