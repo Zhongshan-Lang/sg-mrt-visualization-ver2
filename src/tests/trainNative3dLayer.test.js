@@ -73,7 +73,7 @@ describe('native 3D train features', () => {
         expect(features).toHaveLength(3)
         expect(auraBase.geometry.type).toBe('Polygon')
         expect(auraGlow.geometry.type).toBe('LineString')
-        expect(auraBase.geometry.coordinates).toEqual(body.geometry.coordinates)
+        expect(auraBase.geometry.coordinates).not.toEqual(body.geometry.coordinates)
         expect(body.geometry.type).toBe('Polygon')
     })
     it('breathes smoothly between a soft and bright selected-train glow', () => {

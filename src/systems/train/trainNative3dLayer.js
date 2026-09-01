@@ -26,6 +26,7 @@ export function moveNativeTrainLayerAboveNetwork(map) {
 
 const HIGHLIGHT_FILL_LAYER_ID = 'mrt-train-3d-selection-base'
 const HIGHLIGHT_GLOW_LAYER_ID = 'mrt-train-3d-selection-glow'
+const SELECTED_AURA_SCALE = 1.16
 
 const PULSE_DURATION_MS = 1800
 const PULSE_UPDATE_INTERVAL_MS = 80
@@ -92,7 +93,7 @@ export function createNativeTrainFeatures(trains, getHeading, sizeScale = 1, sel
 
         if (train.id !== selectedTrainId) return [body]
 
-        const auraRing = createCarPolygon(center, heading, sizeScale)
+        const auraRing = createCarPolygon(center, heading, sizeScale * SELECTED_AURA_SCALE)
         const auraBase = turf.polygon([auraRing], {
             trainId: train.id,
             color: getSelectedTrainGlowColor(),
@@ -174,9 +175,9 @@ export class NativeTrain3dLayer {
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
                 'line-color': ['get', 'color'],
-                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 8, 15, 14, 19, 22],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 11, 12, 15, 20, 19, 30],
                 'line-opacity': 0.46,
-                'line-blur': 6.5,
+                'line-blur': 8.5,
             },
         }, LAYER_ID)
         queueMicrotask(() => moveNativeTrainLayerAboveNetwork(map))
@@ -201,7 +202,7 @@ export class NativeTrain3dLayer {
         }
         if (this.map.getLayer(HIGHLIGHT_GLOW_LAYER_ID)) {
             this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-opacity', 0.46 + (pulse * 0.42))
-            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-blur', 6.5 + (pulse * 4.5))
+            this.map.setPaintProperty(HIGHLIGHT_GLOW_LAYER_ID, 'line-blur', 8.5 + (pulse * 5.5))
         }
     }
     _pulse(timestamp) {
