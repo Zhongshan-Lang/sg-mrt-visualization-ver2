@@ -2,11 +2,11 @@ import * as turf from '@turf/turf'
 
 const SOURCE_ID = 'mrt-train-3d-source'
 const LAYER_ID = 'mrt-train-3d-body'
-const CAR_LENGTH_METERS = 68
-const CAR_WIDTH_METERS = 6
+const CAR_LENGTH_METERS = 20
+const CAR_WIDTH_METERS = 8
 const TRAIN_HEIGHT_METERS = 6.5
 const TRAIN_BASE_METERS = 0.28
-const TRAIN_SIZE_SCALE_STOPS = [[11, 5], [15, 2], [19, 1.05]]
+const TRAIN_SIZE_SCALE_STOPS = [[11, 30], [15, 5], [19, 1.05]]
 
 function findBuildingBeforeId(map) {
     return map.getStyle()?.layers?.find(layer => layer.id !== LAYER_ID && layer.type === 'fill-extrusion')?.id
