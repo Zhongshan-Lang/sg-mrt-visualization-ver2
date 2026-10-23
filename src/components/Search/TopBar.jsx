@@ -341,8 +341,9 @@ export default function TopBar({
 }
 
 function getStationFeatureByCode(code) {
-    const stationCodes = stationCodeGroups[code]
-    const stationData = stationCodeToData[code]
+    const stationCode = code.split('-')[0]
+    const stationCodes = stationCodeGroups[stationCode]
+    const stationData = stationCodeToData[stationCode]
     if (!stationCodes || !stationData) return null
 
     return {
@@ -425,7 +426,9 @@ function ResultList({ results, bookmarks, t, isClosing, onSelect }) {
                 <StationResultRow
                     key={index}
                     feature={feature}
-                    bookmarked={bookmarks.some(b => (feature.properties.station_codes || '').split('-').includes(b))}
+                    bookmarked={bookmarks.some(bookmark =>
+                        (feature.properties.station_codes || '').split('-').some(code => bookmark.split('-').includes(code))
+                    )}
                     t={t}
                     onClick={() => onSelect(feature)}
                 />
